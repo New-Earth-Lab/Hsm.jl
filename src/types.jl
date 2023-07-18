@@ -3,5 +3,4 @@ struct HsmStateTransitionError <: Exception
 end
 
 abstract type AbstractHsmState end
-abstract type AbstractHsmEvent end
 abstract type AbstractHsmStateMachine end
