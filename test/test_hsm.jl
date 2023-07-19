@@ -2,7 +2,6 @@ using Revise
 using JET
 
 using Hsm
-using Logging
 
 # Define all states
 struct State_S <: Hsm.AbstractHsmState end
