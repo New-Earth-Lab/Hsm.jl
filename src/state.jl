@@ -4,72 +4,58 @@ on_initialize!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 on_entry!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 on_exit!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 
-# This appears to be correct
-function do_entry(sm::AbstractHsmStateMachine, @nospecialize(s), @nospecialize(t))
+function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
     if s != t
-        do_entry(sm, s, ancestor(t))
+        do_entry!(sm, s, ancestor(t))
     else
         return
     end
-    current!(sm, t)  
+    current!(sm, t)
     on_entry!(sm, t)
     return
 end
 
-function do_exit(sm::AbstractHsmStateMachine, @nospecialize(s), @nospecialize(t))
+function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
     if s != t
         on_exit!(sm, s)
         a = current!(sm, ancestor(s))
-        do_exit(sm, a, t)
+        do_exit!(sm, a, t)
     end
     return
 end
 
-function transition!(sm::AbstractHsmStateMachine, target, action::Function=() -> nothing)
-    # @debug "transition! $(typeof(sm))::$(target)"
+function transition!(sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
+    transition!(() -> nothing, sm, target)
+end
 
-    s = source(sm)
+function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
     c = current(sm)
+    s = source(sm)
+    lca = find_lca(s, target, Top)
 
-    # In the case of source == target, exit the source state too
-    if s == target
-        s = ancestor(s)
-    end
-
-    # Perform exit transitions to the source state
-    do_exit(sm, c, s)
+    # Perform exit transitions from the current state
+    do_exit!(sm, c, lca)
 
     # Call action function
     action()
 
-    lca = find_lca(s, target, Top)
-
-    post(sm, s, target, lca)
-
-    return
-end
-
-function post(sm::AbstractHsmStateMachine, source, target, lca)
-    # exit from source state to lca
-    do_exit(sm, source, lca)
-
-    # Call entry functions from lca down to target
-    do_entry(sm, lca, target)
-
-    # Update the current position to the target
-    current!(sm, target)
+    # Perform entry transitions to the target state
+    do_entry!(sm, lca, target)
 
     # Set the source to current for initialize transitions
     source!(sm, target)
 
     on_initialize!(sm, target)
+
     return
 end
 
-function find_lca(source, target, root)
+function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState}, root::Type{<:AbstractHsmState})
     # Optimization for simple cases
+
+    # Special case for transition to self
     if source == target
-        return source
+        return ancestor(source)
     elseif source == ancestor(target)
         return source
     elseif ancestor(source) == target
@@ -82,7 +68,22 @@ function find_lca(source, target, root)
     end
 end
 
-function find_lca_fast(source, target, root)
+function find_lca_loop(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState}, root::Type{<:AbstractHsmState})
+    s = source
+    while s != root
+        t = target
+        while t != root
+            if t == s
+                return t
+            end
+            t = ancestor(t)
+        end
+        s = ancestor(s)
+    end
+    return Top
+end
+
+function find_lca_fast(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState}, root::Type{<:AbstractHsmState})
     depth_source = 0
     depth_target = 0
 
@@ -128,19 +129,4 @@ function find_lca_fast(source, target, root)
         smaller = ancestor(smaller)
     end
     return larger
-end
-
-function find_lca_loop(source, target, root)
-    s = source
-    while s != root
-        t = target
-        while t != root
-            if t == s
-                return t
-            end
-            t = ancestor(t)
-        end
-        s = ancestor(s)
-    end
-    return Top
 end

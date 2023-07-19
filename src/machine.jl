@@ -1,5 +1,3 @@
-using Logging
-
 mutable struct StateMachineContext
     current::Type{<:AbstractHsmState}
     source::Type{<:AbstractHsmState}
@@ -13,7 +11,14 @@ source!(sm::AbstractHsmStateMachine, state::Type{<:AbstractHsmState}) = sm.conte
 function dispatch!(sm::AbstractHsmStateMachine, event::Any)
     # Find the main source state by calling on_event! until the event is handled
     s = source!(sm, current(sm))
-    while !on_event!(sm, s, event)
+    do_event!(sm, s, event)
+end
+
+function do_event!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, event::Any)
+    if on_event!(sm, s, event)
+        return
+    else
         s = source!(sm, ancestor(s))
+        do_event!(sm, s, event)
     end
 end
