@@ -5,23 +5,22 @@ on_entry!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 on_exit!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 
 function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
-    if s != t
-        do_entry!(sm, s, ancestor(t))
-    else
+    if s == t
         return
     end
+    do_entry!(sm, s, ancestor(t))
     current!(sm, t)
     on_entry!(sm, t)
     return
 end
 
 function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
-    if s != t
-        on_exit!(sm, s)
-        a = current!(sm, ancestor(s))
-        do_exit!(sm, a, t)
+    if s == t
+        return
     end
-    return
+    on_exit!(sm, s)
+    a = current!(sm, ancestor(s))
+    do_exit!(sm, a, t)
 end
 
 function transition!(sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
