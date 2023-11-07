@@ -1,9 +1,11 @@
 using Revise
 using JET
+using BenchmarkTools
 
 using Hsm
 
 # Define all states
+struct Top <: Hsm.AbstractHsmState end
 struct State_S <: Hsm.AbstractHsmState end
 struct State_S1 <: Hsm.AbstractHsmState end
 struct State_S11 <: Hsm.AbstractHsmState end
@@ -33,17 +35,19 @@ end
 # Define the state machine
 mutable struct HsmTest <: Hsm.AbstractHsmStateMachine
     context::Hsm.StateMachineContext
+    # Define state machine variables
     foo::Int
+    
     function HsmTest()
         sm = new(Hsm.StateMachineContext())
-        Hsm.on_initialize!(sm, Hsm.Top)
+        Hsm.on_initialize!(sm, Top)
         return sm
     end
 end
 
 ############
 
-function Hsm.on_initialize!(sm::HsmTest, state::Type{Hsm.Top})
+function Hsm.on_initialize!(sm::HsmTest, state::Type{Top})
     Hsm.transition!(function ()
             #print("$(state)-INIT;")
             sm.foo = 0
@@ -53,7 +57,7 @@ end
 ##############
 
 
-Hsm.ancestor(::Type{State_S}) = Hsm.Top
+Hsm.ancestor(::Type{State_S}) = Top
 
 function Hsm.on_initialize!(sm::HsmTest, state::Type{State_S})
     Hsm.transition!(function ()
@@ -279,7 +283,5 @@ function test(hsm)
 
 end
 
-# ENV["JULIA_DEBUG"] = Hsm
 hsm = HsmTest()
-#print("\n")
 test(hsm)

@@ -5,7 +5,7 @@ include("state.jl")
 include("machine.jl")
 include("event.jl")
 
-export AbstractHsmState, AbstractHsmMachine, Top
+export AbstractHsmState, AbstractHsmMachine
 export on_initialize!, on_entry!, on_exit!, on_event!
 export transition!, dispatch!
 export StateMachineContext

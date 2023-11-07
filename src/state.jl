@@ -1,5 +1,5 @@
-struct Top <: AbstractHsmState end
-ancestor(::Type{<:AbstractHsmState}) = Top
+struct Root <: AbstractHsmState end
+ancestor(::Type{<:AbstractHsmState}) = Root
 on_initialize!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 on_entry!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 on_exit!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
@@ -30,7 +30,7 @@ end
 function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
     c = current(sm)
     s = source(sm)
-    lca = find_lca(s, target, Top)
+    lca = find_lca(s, target)
 
     # Perform exit transitions from the current state
     do_exit!(sm, c, lca)
@@ -49,12 +49,11 @@ function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type
     return
 end
 
-function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState}, root::Type{<:AbstractHsmState})
-    # Optimization for simple cases
-
+function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
     # Special case for transition to self
     if source == target
         return ancestor(source)
+        # Optimization for simple cases
     elseif source == ancestor(target)
         return source
     elseif ancestor(source) == target
@@ -63,15 +62,15 @@ function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmSt
         return ancestor(source)
     else
         # Nested cases
-        return find_lca_fast(source, target, root)
+        return find_lca_fast(source, target)
     end
 end
 
-function find_lca_loop(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState}, root::Type{<:AbstractHsmState})
+function find_lca_loop(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
     s = source
-    while s != root
+    while s != Root
         t = target
-        while t != root
+        while t != Root
             if t == s
                 return t
             end
@@ -79,16 +78,16 @@ function find_lca_loop(source::Type{<:AbstractHsmState}, target::Type{<:Abstract
         end
         s = ancestor(s)
     end
-    return Top
+    return Root
 end
 
-function find_lca_fast(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState}, root::Type{<:AbstractHsmState})
+function find_lca_fast(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
     depth_source = 0
     depth_target = 0
 
     # Check if target is a substate of source
     t = target
-    while t != root
+    while t != Root
         if t == source
             return t
         end
@@ -98,7 +97,7 @@ function find_lca_fast(source::Type{<:AbstractHsmState}, target::Type{<:Abstract
 
     # Check if source is a substate of target
     s = source
-    while s != root
+    while s != Root
         if s == target
             return s
         end
