@@ -24,7 +24,7 @@ function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::T
 end
 
 function transition!(sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
-    transition!(() -> nothing, sm, target)
+    transition!(Returns(nothing), sm, target)
 end
 
 function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
