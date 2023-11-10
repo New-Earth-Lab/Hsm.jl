@@ -34,10 +34,10 @@ end
 
 # Define the state machine
 mutable struct HsmTest <: Hsm.AbstractHsmStateMachine
-    context::Hsm.StateMachineContext
+    const context::Hsm.StateMachineContext
     # Define state machine variables
     foo::Int
-    
+
     function HsmTest()
         sm = new(Hsm.StateMachineContext())
         Hsm.on_initialize!(sm, Top)
@@ -47,38 +47,34 @@ end
 
 ############
 
-function Hsm.on_initialize!(sm::HsmTest, state::Type{Top})
-    Hsm.transition!(function ()
-            #print("$(state)-INIT;")
-            sm.foo = 0
-        end, sm, State_S2)
-end
+Hsm.on_initialize!(sm::HsmTest, state::Type{Top}) =
+    Hsm.transition!(sm, State_S2) do
+        #print("$(state)-INIT;")
+        sm.foo = 0
+    end
 
 ##############
 
 
 Hsm.ancestor(::Type{State_S}) = Top
 
-function Hsm.on_initialize!(sm::HsmTest, state::Type{State_S})
-    Hsm.transition!(function ()
-            #print("$(state)-INIT;")
-        end, sm, State_S11)
-end
+Hsm.on_initialize!(sm::HsmTest, state::Type{State_S}) =
+    Hsm.transition!(sm, State_S11) do
+        #print("$(state)-INIT;")
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::Type{State_S}, event::Event_E)
-    Hsm.transition!(function ()
-            #print("$(state)-$(event);")
-        end, sm, State_S11)
-    return true
-end
+Hsm.on_event!(sm::HsmTest, state::Type{State_S}, event::Event_E) =
+    Hsm.transition!(sm, State_S11) do
+        #print("$(state)-$(event);")
+    end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S}, event::Event_I)
     if sm.foo == 1
         #print("$(state)-$(event);")
         sm.foo = 0
-        return true
+        return Hsm.EventHandled
     else
-        return false
+        return Hsm.EventNotHandled
     end
 end
 
@@ -86,55 +82,45 @@ end
 
 Hsm.ancestor(::Type{State_S1}) = State_S
 
-function Hsm.on_initialize!(sm::HsmTest, state::Type{State_S1})
-    Hsm.transition!(function ()
-            #print("$(state)-INIT;")
-        end, sm, State_S11)
-end
+Hsm.on_initialize!(sm::HsmTest, state::Type{State_S1}) =
+    Hsm.transition!(sm, State_S11) do
+        #print("$(state)-INIT;")
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_A)
-    Hsm.transition!(function ()
-            #print("$(state)-$(event);")
-        end, sm, State_S1)
-    return true
-end
+Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_A) =
+    Hsm.transition!(sm, State_S1) do
+        #print("$(state)-$(event);")
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_B)
-    Hsm.transition!(function ()
-            #print("$(state)-$(event);")
-        end, sm, State_S11)
-    return true
-end
+Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_B) =
+    Hsm.transition!(sm, State_S11) do
+        #print("$(state)-$(event);")
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_C)
-    Hsm.transition!(function ()
-            #print("$(state)-$(event);")
-        end, sm, State_S2)
-    return true
-end
+Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_C) =
+    Hsm.transition!(sm, State_S2) do
+        #print("$(state)-$(event);")
+    end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_D)
     if sm.foo == 0
-        Hsm.transition!(function ()
-                #print("$(state)-$(event);")
-                sm.foo = 1
-            end, sm, State_S)
-        return true
+        return Hsm.transition!(sm, State_S) do
+            #print("$(state)-$(event);")
+            sm.foo = 1
+        end
     else
-        return false
+        return Hsm.EventNotHandled
     end
 end
 
-function Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_F)
-    Hsm.transition!(function ()
-            #print("$(state)-$(event);")
-        end, sm, State_S211)
-    return true
-end
+Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_F) = 
+    Hsm.transition!(sm, State_S211) do
+        #print("$(state)-$(event);")
+    end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S1}, event::Event_I)
     #print("$(state)-$(event);")
-    return true
+    return Hsm.EventHandled
 end
 
 #############
@@ -143,13 +129,12 @@ Hsm.ancestor(::Type{State_S11}) = State_S1
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S11}, event::Event_D)
     if sm.foo == 1
-        Hsm.transition!(function ()
+        return Hsm.transition!(function ()
                 #print("$(state)-$(event);")
                 sm.foo = 0
             end, sm, State_S1)
-        return true
     else
-        return false
+        return Hsm.EventNotHandled
     end
 end
 
@@ -157,14 +142,12 @@ function Hsm.on_event!(sm::HsmTest, state::Type{State_S11}, event::Event_G)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S211)
-    return true
 end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S11}, event::Event_H)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S)
-    return true
 end
 
 ######
@@ -181,23 +164,21 @@ function Hsm.on_event!(sm::HsmTest, state::Type{State_S2}, event::Event_C)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S1)
-    return true
 end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S2}, event::Event_F)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S11)
-    return true
 end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S2}, event::Event_I)
     if sm.foo == 0
         #print("$(state)-$(event);")
         sm.foo = 1
-        return true
+        return Hsm.EventHandled
     else
-        return false
+        return Hsm.EventNotHandled
     end
 end
 
@@ -215,21 +196,18 @@ function Hsm.on_event!(sm::HsmTest, state::Type{State_S21}, event::Event_A)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S21)
-    return true
 end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S21}, event::Event_B)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S211)
-    return true
 end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S21}, event::Event_G)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S11)
-    return true
 end
 
 #############
@@ -240,14 +218,12 @@ function Hsm.on_event!(sm::HsmTest, state::Type{State_S211}, event::Event_D)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S21)
-    return true
 end
 
 function Hsm.on_event!(sm::HsmTest, state::Type{State_S211}, event::Event_H)
     Hsm.transition!(function ()
             #print("$(state)-$(event);")
         end, sm, State_S)
-    return true
 end
 
 function dispatch!(sm, event)
@@ -257,8 +233,6 @@ function dispatch!(sm, event)
 end
 
 function test(hsm)
-    # dispatch!(hsm, Event_E())
-
     dispatch!(hsm, Event_A())
     dispatch!(hsm, Event_B())
     dispatch!(hsm, Event_D())
@@ -280,7 +254,6 @@ function test(hsm)
     dispatch!(hsm, Event_G())
     dispatch!(hsm, Event_C())
     dispatch!(hsm, Event_C())
-
 end
 
 hsm = HsmTest()

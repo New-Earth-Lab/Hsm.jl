@@ -46,7 +46,7 @@ function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type
 
     on_initialize!(sm, target)
 
-    return true
+    return EventHandled
 end
 
 function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})

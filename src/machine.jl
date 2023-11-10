@@ -15,10 +15,13 @@ end
 
 function do_event!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, event::Any)
     # Find the main source state by calling on_event! until the event is handled
-    if on_event!(sm, s, event)
+    ret = on_event!(sm, s, event)
+    if ret == EventHandled
         return
-    else
+    elseif ret == EventNotHandled
         s = source!(sm, ancestor(s))
         do_event!(sm, s, event)
+    else
+        error("Invalid return value from on_event!")
     end
 end
