@@ -5,7 +5,7 @@ on_entry!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 on_exit!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
 
 function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
-    if s == t
+    if s === t
         return
     end
     do_entry!(sm, s, ancestor(t))
@@ -15,7 +15,7 @@ function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::
 end
 
 function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
-    if s == t
+    if s === t
         return
     end
     on_exit!(sm, s)
@@ -51,80 +51,65 @@ end
 
 function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
     # Special case for transition to self
-    if source == target
+    if source === target
         return ancestor(source)
-        # Optimization for simple cases
-    elseif source == ancestor(target)
+    elseif source === ancestor(target)
         return source
-    elseif ancestor(source) == target
+    elseif ancestor(source) === target
         return target
-    elseif ancestor(source) == ancestor(target)
-        return ancestor(source)
+    end
+    find_lca_recursive(source, target)
+end
+
+# Is 'a' a child of 'b'
+function isancestorof(@nospecialize(a), @nospecialize(b))
+    if a === Root || b === Root
+        return false
+    elseif a === b
+        return true
+    end
+    isancestorof(ancestor(a), b)
+end
+
+function find_lca_recursive(@nospecialize(source), @nospecialize(target))
+    if source === Root || target === Root
+        return Root
+    end
+
+    if source === target
+        return source
+    end
+
+    if isancestorof(source, target)
+        return find_lca_recursive(ancestor(source), target)
     else
-        # Nested cases
-        return find_lca_fast(source, target)
+        return find_lca_recursive(source, ancestor(target))
     end
 end
 
-function find_lca_loop(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
-    s = source
-    while s != Root
+function find_lca_loop(@nospecialize(source), @nospecialize(target))
+    while source !== Root
         t = target
-        while t != Root
-            if t == s
+        while t !== Root
+            if t === source
                 return t
             end
             t = ancestor(t)
         end
-        s = ancestor(s)
+        source = ancestor(source)
     end
     return Root
 end
 
-function find_lca_fast(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
-    depth_source = 0
-    depth_target = 0
-
-    # Check if target is a substate of source
-    t = target
-    while t != Root
-        if t == source
-            return t
+function find_lca_loop2(@nospecialize(source), @nospecialize(target))
+    while source !== Root
+        if isancestorof(target, source)
+            while target !== source
+                target = ancestor(target)
+            end
+            return target
         end
-        t = ancestor(t)
-        depth_target += 1
+        source = ancestor(source)
     end
-
-    # Check if source is a substate of target
-    s = source
-    while s != Root
-        if s == target
-            return s
-        end
-        s = ancestor(s)
-        depth_source += 1
-    end
-
-    # If not found use the measured depth to calculate the common ancestor
-    if depth_source > depth_target
-        larger = source
-        smaller = target
-        delta = depth_source - depth_target
-    else
-        larger = target
-        smaller = source
-        delta = depth_target - depth_source
-    end
-
-    # Bring the states to an equal level
-    while delta != 0
-        larger = ancestor(larger)
-        delta -= 1
-    end
-
-    while larger != smaller
-        larger = ancestor(larger)
-        smaller = ancestor(smaller)
-    end
-    return larger
+    return Root
 end

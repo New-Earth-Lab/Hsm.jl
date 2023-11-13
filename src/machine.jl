@@ -8,19 +8,19 @@ current!(sm::AbstractHsmStateMachine, state::Type{<:AbstractHsmState}) = sm.cont
 source(sm::AbstractHsmStateMachine)::Type{<:AbstractHsmState} = sm.context.source
 source!(sm::AbstractHsmStateMachine, state::Type{<:AbstractHsmState}) = sm.context.source = state
 
-function dispatch!(sm::AbstractHsmStateMachine, event::Any)
-    s = source!(sm, current(sm))
-    do_event!(sm, s, event)
+function dispatch!(sm::AbstractHsmStateMachine, event)
+    do_event!(sm, current(sm), event)
 end
 
-function do_event!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, event::Any)
+function do_event!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, event)
     # Find the main source state by calling on_event! until the event is handled
+    source!(sm, s)
     ret = on_event!(sm, s, event)
-    if ret == EventHandled
+    if ret === EventHandled
         return
-    elseif ret == EventNotHandled
-        s = source!(sm, ancestor(s))
-        do_event!(sm, s, event)
+    elseif ret === EventNotHandled
+        do_event!(sm, ancestor(s), event)
+        return
     else
         error("Invalid return value from on_event!")
     end
