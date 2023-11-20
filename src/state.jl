@@ -1,10 +1,10 @@
 struct Root <: AbstractHsmState end
-ancestor(::Type{<:AbstractHsmState}) = Root
-on_initialize!(sm::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = sm
-on_entry!(sm::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = sm
-on_exit!(sm::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = sm
+ancestor(::AbstractHsmState) = Root()
+on_initialize!(sm::AbstractHsmStateMachine, ::AbstractHsmState) = sm
+on_entry!(sm::AbstractHsmStateMachine, ::AbstractHsmState) = sm
+on_exit!(sm::AbstractHsmStateMachine, ::AbstractHsmState) = sm
 
-function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
+function do_entry!(sm::AbstractHsmStateMachine, s::AbstractHsmState, t::AbstractHsmState)
     if s === t
         return sm
     end
@@ -23,7 +23,7 @@ function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::
     return sm
 end
 
-function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
+function do_exit!(sm::AbstractHsmStateMachine, s::AbstractHsmState, t::AbstractHsmState)
     if s === t
         return sm
     end
@@ -43,11 +43,11 @@ function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::T
     return sm
 end
 
-function transition!(sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
+function transition!(sm::AbstractHsmStateMachine, target::AbstractHsmState)
     transition!(Returns(nothing), sm, target)
 end
 
-function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
+function transition!(action::Function, sm::AbstractHsmStateMachine, target::AbstractHsmState)
     c = current(sm)
     s = source(sm)
     lca = find_lca(s, target)
@@ -83,7 +83,7 @@ function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type
     return sm
 end
 
-function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
+function find_lca(source::AbstractHsmState, target::AbstractHsmState)
     # Special case for transition to self
     if source === target
         return ancestor(source)
@@ -97,7 +97,7 @@ end
 
 # Is 'a' a child of 'b'
 function isancestorof(a, b)
-    if a === Root || b === Root
+    if a === Root() || b === Root()
         return false
     elseif a === b
         return true
@@ -106,8 +106,8 @@ function isancestorof(a, b)
 end
 
 function find_lca_recursive(source, target)
-    if source === Root || target === Root
-        return Root
+    if source === Root() || target === Root()
+        return Root()
     end
 
     if source === target
@@ -122,9 +122,9 @@ function find_lca_recursive(source, target)
 end
 
 function find_lca_loop(source, target)
-    while source !== Root
+    while source !== Root()
         t = target
-        while t !== Root
+        while t !== Root()
             if t === source
                 return t
             end
@@ -132,5 +132,5 @@ function find_lca_loop(source, target)
         end
         source = ancestor(source)
     end
-    return Root
+    return Root()
 end
