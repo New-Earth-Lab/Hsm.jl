@@ -1,4 +1,5 @@
 module Hsm
+using Setfield
 
 include("types.jl")
 include("state.jl")

@@ -1,26 +1,46 @@
 struct Root <: AbstractHsmState end
 ancestor(::Type{<:AbstractHsmState}) = Root
-on_initialize!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
-on_entry!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
-on_exit!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
+on_initialize!(sm::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = sm
+on_entry!(sm::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = sm
+on_exit!(sm::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = sm
 
 function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
     if s === t
-        return
+        return sm
     end
-    do_entry!(sm, s, ancestor(t))
-    current!(sm, t)
-    on_entry!(sm, t)
-    return
+    sm = do_entry!(sm, s, ancestor(t))
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    sm = current!(sm, t)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    sm = on_entry!(sm, t)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    return sm
 end
 
 function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
     if s === t
-        return
+        return sm
     end
-    on_exit!(sm, s)
-    a = current!(sm, ancestor(s))
-    do_exit!(sm, a, t)
+    sm = on_exit!(sm, s)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    a = ancestor(s)
+    sm = current!(sm, a)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    sm = do_exit!(sm, a, t)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    return sm
 end
 
 function transition!(sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
@@ -33,20 +53,34 @@ function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type
     lca = find_lca(s, target)
 
     # Perform exit transitions from the current state
-    do_exit!(sm, c, lca)
+    sm = do_exit!(sm, c, lca)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
 
     # Call action function
     action()
 
     # Perform entry transitions to the target state
-    do_entry!(sm, lca, target)
+    sm = do_entry!(sm, lca, target)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
 
     # Set the source to current for initialize transitions
-    source!(sm, target)
+    sm = source!(sm, target)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
 
-    on_initialize!(sm, target)
+    sm = on_initialize!(sm, target)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
 
-    return EventHandled
+    sm = @set sm.context.handled = true
+
+    return sm
 end
 
 function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
@@ -62,7 +96,7 @@ function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmSt
 end
 
 # Is 'a' a child of 'b'
-function isancestorof(@nospecialize(a), @nospecialize(b))
+function isancestorof(a, b)
     if a === Root || b === Root
         return false
     elseif a === b
@@ -71,7 +105,7 @@ function isancestorof(@nospecialize(a), @nospecialize(b))
     isancestorof(ancestor(a), b)
 end
 
-function find_lca_recursive(@nospecialize(source), @nospecialize(target))
+function find_lca_recursive(source, target)
     if source === Root || target === Root
         return Root
     end
@@ -87,7 +121,7 @@ function find_lca_recursive(@nospecialize(source), @nospecialize(target))
     end
 end
 
-function find_lca_loop(@nospecialize(source), @nospecialize(target))
+function find_lca_loop(source, target)
     while source !== Root
         t = target
         while t !== Root
