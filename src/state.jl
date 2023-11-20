@@ -100,16 +100,3 @@ function find_lca_loop(@nospecialize(source), @nospecialize(target))
     end
     return Root
 end
-
-function find_lca_loop2(@nospecialize(source), @nospecialize(target))
-    while source !== Root
-        if isancestorof(target, source)
-            while target !== source
-                target = ancestor(target)
-            end
-            return target
-        end
-        source = ancestor(source)
-    end
-    return Root
-end
