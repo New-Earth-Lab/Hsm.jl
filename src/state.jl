@@ -59,8 +59,11 @@ function transition!(action::Function, sm::AbstractHsmStateMachine, target::Abst
     end
 
     # Call action function
-    action()
-
+    sm = action(sm)
+    if isnothing(sm)
+        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    end
+    
     # Perform entry transitions to the target state
     sm = do_entry!(sm, lca, target)
     if isnothing(sm)

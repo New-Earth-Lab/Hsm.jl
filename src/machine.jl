@@ -18,9 +18,18 @@ end
 function do_event!(sm::AbstractHsmStateMachine, s::AbstractHsmState, event)
     # Find the main source state by calling on_event! until the event is handled
     sm = source!(sm, s)
+    if isnothing(sm)
+        error(lazy"callback returned nothing instead of updated state machine in response to $event")
+    end
     sm = on_event!(sm, s, event)
+    if isnothing(sm)
+        error(lazy"callback returned nothing instead of updated state machine in response to $event")
+    end
     if !sm.context.handled
         sm = do_event!(sm, ancestor(s), event)
+        if isnothing(sm)
+            error(lazy"callback returned nothing instead of updated state machine in response to $event")
+        end
     end
     return sm
 end
