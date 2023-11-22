@@ -5,13 +5,6 @@ end
 
 using FunctionWrappers: FunctionWrapper
 function on_event!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol, event_name::Symbol)
-    @info "Registering callback" state_name event_name
-    precompile(callback, (Vector{UInt8},))
-    # allocations = check_allocs(callback, (Vector{UInt8},))
-    # if !isempty(allocations)
-    #     @warn "Provided on_event! callback will allocate. This is bad for real-time performance!" allocations
-    # end
-
     # TODO: In reality, a SubArray{UInt8, 1, Vector{UInt8}, Tuple{UnitRange{Int64}}, true}
     fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8}}}(callback) # Works!
     # fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8},typeof(typer)}}(our_callback)
@@ -20,34 +13,16 @@ function on_event!(callback::Base.Callable, sm::AbstractStateMachine, state_name
     return nothing
 end
 function on_entry!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol,)
-    @info "Registering enter callback" state_name
-    precompile(callback, ())
-    # allocations = check_allocs(callback, ())
-    # if !isempty(allocations)
-    #     @warn "Provided on_entry! callback will allocate. This is bad for real-time performance!" allocations
-    # end
     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
     push!(sm.ctx.enters, (; state=state_name, callback=fw))
     return nothing
 end
 function on_exit!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol,)
-    @info "Registering exit callback" state_name
-    precompile(callback, ())
-    # allocations = check_allocs(callback, ())
-    # if !isempty(allocations)
-    #     @warn "Provided on_exit! callback will allocate. This is bad for real-time performance!" allocations
-    # end
     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
     push!(sm.ctx.exits, (; state=state_name, callback=fw))
     return nothing
 end
 function on_initialize!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol,)
-    @info "Registering initialize callback" state_name
-    precompile(callback, ())
-    # allocations = check_allocs(callback, ())
-    # if !isempty(allocations)
-    #     @warn "Provided on_initialize! callback will allocate. This is bad for real-time performance!" allocations
-    # end
     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
     push!(sm.ctx.initializes, (; state=state_name, callback=fw))
     return nothing
