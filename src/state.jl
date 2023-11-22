@@ -1,12 +1,12 @@
 
-function do_entry!(sm::HierarchicalStateMachine1, s::Symbol, t::Symbol)
+function do_entry!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     if s === t
         return
     end
     do_entry!(sm, s, ancestor(sm, t))
     current!(sm, t)
     # Call on_entry callback
-    for enter′ in sm.enters
+    for enter′ in sm.ctx.enters
         if enter′.state == t
             enter′.callback()
             break
@@ -17,12 +17,12 @@ end
 
 
 
-function do_exit!(sm::HierarchicalStateMachine1, s::Symbol, t::Symbol)
+function do_exit!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     if s === t
         return
     end
     # Call on_exit callback
-    for exit′ in sm.exits
+    for exit′ in sm.ctx.exits
         if exit′.state == s
             exit′.callback()
             break
@@ -33,12 +33,12 @@ function do_exit!(sm::HierarchicalStateMachine1, s::Symbol, t::Symbol)
     return
 end
 
-function transition!(sm::HierarchicalStateMachine1, target::Symbol)
+function transition!(sm::AbstractStateMachine, target::Symbol)
     transition!(Returns(nothing), sm, target)
 end
 
 # TODO: work in progress
-function transition!(action::Function, sm::HierarchicalStateMachine1, target::Symbol)
+function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
     c = current(sm)
     s = source(sm)
     lca = find_lca(sm, s, target)
@@ -57,7 +57,7 @@ function transition!(action::Function, sm::HierarchicalStateMachine1, target::Sy
     source!(sm, target)
 
     # Call on_initialize callback
-    for initialize′ in sm.initializes
+    for initialize′ in sm.ctx.initializes
         if initialize′.state == target
             initialize′.callback()
             break
@@ -67,8 +67,8 @@ function transition!(action::Function, sm::HierarchicalStateMachine1, target::Sy
     return Handled
 end
 
-function ancestor(hsm1::HierarchicalStateMachine1, state::Symbol)
-    for state′ in hsm1.states
+function ancestor(hsm1::AbstractStateMachine, state::Symbol)
+    for state′ in hsm1.ctx.states
         if state′.name == state
             return state′.ancestor
         end
@@ -76,7 +76,7 @@ function ancestor(hsm1::HierarchicalStateMachine1, state::Symbol)
     return :Root
 end
 
-function find_lca(hsm1::HierarchicalStateMachine1, source::Symbol, target::Symbol)
+function find_lca(hsm1::AbstractStateMachine, source::Symbol, target::Symbol)
     # Special case for transition to self
     if source === target
         return ancestor(hsm1, source)
@@ -88,7 +88,7 @@ function find_lca(hsm1::HierarchicalStateMachine1, source::Symbol, target::Symbo
     find_lca_loop(hsm1, source, target)
 end
 # Could put Base.@assume_effects :terminates_locally
-function find_lca_loop(sm::HierarchicalStateMachine1, source, target)
+function find_lca_loop(sm::AbstractStateMachine, source, target)
     while source !== :Root
         t = target
         while t !== :Root

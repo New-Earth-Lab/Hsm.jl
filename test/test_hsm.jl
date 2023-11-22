@@ -2,21 +2,19 @@ using Revise
 # using JET
 using BenchmarkTools
 using Hsm
-using Hsm: register_events!, add_state!, HierarchicalStateMachine1, StateMachineContext1, on_initialize!, on_event!, transition!, on_exit!, on_entry!, current, source, dispatch!
+using Hsm: register_events!, AbstractStateMachine, add_state!, StateMachineContext, on_initialize!, on_event!, transition!, on_exit!, on_entry!, current, source, dispatch!
 using Hsm: Handled, NotHandled
 
 
 ## DEFINITION ##########################################
-# states = [
-    # (; name = :Top, ancestor=:Root),
-    # (; name = :S, ancestor=:Top),
-    # (; name = :S1, ancestor=:S),
-    # (; name = :S11, ancestor=:S1),
-    # (; name = :S2, ancestor=:S),
-    # (; name = :S21, ancestor=:S2),
-    # (; name = :S211, ancestor=:S21),
-# ]
-hsm1 = HierarchicalStateMachine1(StateMachineContext1(:Root, :Root,0) )
+Base.@kwdef mutable struct MyStateMachine <: AbstractStateMachine
+    ctx::StateMachineContext
+    foo::Int = 1
+end
+hsm1 = MyStateMachine(
+    ctx=StateMachineContext(),
+    foo=1
+)
 register_events!(hsm1) do sm
 
     add_state!(sm, name = :Top, ancestor=:Root)
@@ -27,25 +25,25 @@ register_events!(hsm1) do sm
     add_state!(sm, name = :S21, ancestor=:S2)
     add_state!(sm, name = :S211, ancestor=:S21)
 
-    on_entry!(()->print("Top-ENTRY;"), sm, :Top)
-    on_entry!(()->print("S-ENTRY;"), sm, :S)
-    on_entry!(()->print("S1-ENTRY;"), sm, :S1)
-    on_entry!(()->print("S11-ENTRY;"), sm, :S11)
-    on_entry!(()->print("S2-ENTRY;"), sm, :S2)
-    on_entry!(()->print("S21-ENTRY;"), sm, :S21)
-    on_entry!(()->print("S211-ENTRY;"), sm, :S211)
+    # on_entry!(()->print("Top-ENTRY;"), sm, :Top)
+    # on_entry!(()->print("S-ENTRY;"), sm, :S)
+    # on_entry!(()->print("S1-ENTRY;"), sm, :S1)
+    # on_entry!(()->print("S11-ENTRY;"), sm, :S11)
+    # on_entry!(()->print("S2-ENTRY;"), sm, :S2)
+    # on_entry!(()->print("S21-ENTRY;"), sm, :S21)
+    # on_entry!(()->print("S211-ENTRY;"), sm, :S211)
 
-    on_exit!(()->print("S-EXIT;"), sm, :S)
-    on_exit!(()->print("S1-EXIT;"), sm, :S1)
-    on_exit!(()->print("S11-EXIT;"), sm, :S11)
-    on_exit!(()->print("S2-EXIT;"), sm, :S2)
-    on_exit!(()->print("S21-EXIT;"), sm, :S21)
-    on_exit!(()->print("S211-EXIT;"), sm, :S211)
+    # on_exit!(()->print("S-EXIT;"), sm, :S)
+    # on_exit!(()->print("S1-EXIT;"), sm, :S1)
+    # on_exit!(()->print("S11-EXIT;"), sm, :S11)
+    # on_exit!(()->print("S2-EXIT;"), sm, :S2)
+    # on_exit!(()->print("S21-EXIT;"), sm, :S21)
+    # on_exit!(()->print("S211-EXIT;"), sm, :S211)
 
     on_initialize!(sm, :Top) do 
         transition!(sm, :S2) do 
-            print("Top-INIT;")
-            sm.ctx.foo = 0
+            # print("Top-INIT;")
+            sm.foo = 0
         end
     end
 
@@ -53,19 +51,19 @@ register_events!(hsm1) do sm
 
     on_initialize!(sm, :S) do 
         transition!(sm, :S11) do 
-            print("S1-INIT")
+            # print("S1-INIT")
         end
     end
     on_event!(sm, :S, :E) do payload
         transition!(sm, :S11) do 
-            print("S11-E")
+            # print("S11-E")
         end
         return Handled
     end
     on_event!(sm, :S, :I) do payload
-        if sm.ctx.foo == 1
-            print("S-I")
-            sm.ctx.foo = 0
+        if sm.foo == 1
+            # print("S-I")
+            sm.foo = 0
             return Handled
         end
         return NotHandled 
@@ -74,36 +72,36 @@ register_events!(hsm1) do sm
     ## S1
     on_initialize!(sm, :S1) do 
         transition!(sm, :S11) do
-            print("S1-INIT;")
+            # print("S1-INIT;")
         end
         return Handled
     end
     on_event!(sm, :S1, :A) do payload
         transition!(sm, :S1) do 
-            print("S1-A;")
+            # print("S1-A;")
         end
         return Handled
     end
 
     on_event!(sm, :S1, :B) do payload
         transition!(sm, :S11) do
-            print("S1-B;")
+            # print("S1-B;")
         end
         return Handled
     end
 
     on_event!(sm, :S1, :C) do payload
         transition!(sm, :S2) do
-            print("S2-C;")
+            # print("S2-C;")
         end
         return Handled
     end
 
     on_event!(sm, :S1, :D) do payload
-        if sm.ctx.foo == 0
+        if sm.foo == 0
             transition!(sm, :S) do
-                print("S1;")
-                sm.ctx.foo = 1
+                # print("S1;")
+                sm.foo = 1
             end
             return Handled
         end
@@ -112,22 +110,22 @@ register_events!(hsm1) do sm
 
     on_event!(sm, :S1, :F) do payload 
         transition!(sm, :S211) do
-            print("S211-F;")
+            # print("S211-F;")
         end
     end
 
     on_event!(sm, :S1, :I) do payload
-        print("S1-I;")
+        # print("S1-I;")
         return Handled
     end
 
 
     ## S11
     on_event!(sm, :S11, :D) do payload
-        if sm.ctx.foo == 1
+        if sm.foo == 1
             transition!(sm, :S1) do 
-                print("S11-D;")
-                sm.ctx.foo = 0
+                # print("S11-D;")
+                sm.foo = 0
             end
             return Handled
         end
@@ -136,14 +134,14 @@ register_events!(hsm1) do sm
 
     on_event!(sm, :S11, :G) do  payload
         transition!(sm, :S211) do
-            print("S11-G;")
+            # print("S11-G;")
         end
         return Handled
     end
     
     on_event!(sm, :S11, :H) do  payload
         transition!(sm, :S) do 
-            print("S11-H;")
+            # print("S11-H;")
         end
         return Handled
     end
@@ -154,28 +152,28 @@ register_events!(hsm1) do sm
     ## S2
     on_initialize!(sm, :S2) do 
         transition!(sm, :S211) do
-            print("S2-INIT;")
+            # print("S2-INIT;")
         end
     end
 
     on_event!(sm, :S2, :C) do payload
         transition!(sm, :S1) do 
-            print("S2-C;")
+            # print("S2-C;")
         end
         return Handled
     end
 
     on_event!(sm, :S2, :F) do payload
         transition!(sm, :S11) do 
-            print("S2-F;")
+            # print("S2-F;")
         end
         return Handled
     end
 
     on_event!(sm, :S2, :I) do payload
-        if sm.ctx.foo == 0
-            print("S2-I")
-            sm.ctx.foo = 1
+        if sm.foo == 0
+            # print("S2-I")
+            sm.foo = 1
             return Handled
         end
         return NotHandled
@@ -187,24 +185,24 @@ register_events!(hsm1) do sm
     on_initialize!(sm, :S21) do 
         transition!(sm, :S211) do
             # The previous S21 also transitions to S211? Is that right?
-            print("S21-INIT;")
+            # print("S21-INIT;")
         end
     end
     on_event!(sm, :S21, :A) do payload
         transition!(sm, :S21) do 
-            print("S21-A;")
+            # print("S21-A;")
         end
         return Handled
     end
     on_event!(sm, :S21, :B) do payload
         transition!(sm, :S211) do 
-            print("S21-B;")
+            # print("S21-B;")
         end
         return Handled
     end
     on_event!(sm, :S21, :G) do payload
         transition!(sm, :S11) do 
-            print("S21-G;")
+            # print("S21-G;")
         end
         return Handled
     end
@@ -214,13 +212,13 @@ register_events!(hsm1) do sm
     end
     on_event!(sm, :S211, :D) do payload
         transition!(sm, :S21) do 
-            print("S211-D;")
+            # print("S211-D;")
         end
         return Handled
     end
     on_event!(sm, :S211, :H) do payload
         transition!(sm, :S) do 
-            print("S211-H;")
+            # print("S211-H;")
         end
         return Handled
     end
@@ -232,15 +230,15 @@ end;
 function test(hsm)
     # Yuck, initial initialization is painful
     # call on_initialize callback of Top:
-    for I in hsm.initializes
+    for I in hsm.ctx.initializes
         if I.state == :Top
             I.callback()
         end
     end
     function dispatch!(hsm, event)
-        print("$event:")
+        # print("$event:")
         Hsm.dispatch!(hsm, event)
-        println()
+        # println()
     end
 
     # transition!(hsm, :Top)
@@ -268,6 +266,7 @@ function test(hsm)
     
     return
 end
+precompile(test, (typeof(hsm1),))
 @time test(hsm1)
 # TODO: initial transition to Top is calling initialize but not leaving us in S1
 # Bit confused about Top vs Root

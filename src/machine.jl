@@ -1,5 +1,6 @@
 @enum EventHandled Handled NotHandled
 
+abstract type AbstractStateMachine end
 
 const T_state = @NamedTuple{name::Symbol, ancestor::Symbol}
 const T_event = @NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}
@@ -7,41 +8,39 @@ const T_exit = @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWra
 const T_enter = @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}
 const T_initialize = @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}
 
-struct HierarchicalStateMachine1{CTX}
-    states::Vector{@NamedTuple{name::Symbol, ancestor::Symbol}}
-    events::Vector{@NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}}
-    exits::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    enters::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    initializes::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    ctx::CTX
+mutable struct StateMachineContext
+    # These vectors are constant bindings but can be modified
+    const states::Vector{@NamedTuple{name::Symbol, ancestor::Symbol}}
+    const events::Vector{@NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}}
+    const exits::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    const enters::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    const initializes::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    current::Symbol
+    source::Symbol
+    # history::Symbol
 end
-HierarchicalStateMachine1(ctx) = HierarchicalStateMachine1(
+StateMachineContext() = StateMachineContext(
     T_state[],
     T_event[],
     T_exit[],
     T_enter[],
     T_initialize[],
-    ctx
+    :Root,
+    :Root,
 )
 
-# Defined by user? #
-mutable struct StateMachineContext1
-    current::Symbol
-    source::Symbol
-    # history::Symbol
-    foo::Int
-end
-current(hsm1::HierarchicalStateMachine1) = hsm1.ctx.current
-current!(hsm1::HierarchicalStateMachine1, state::Symbol) = hsm1.ctx.current = state
-source(hsm1::HierarchicalStateMachine1) = hsm1.ctx.source
-source!(hsm1::HierarchicalStateMachine1, state::Symbol) = hsm1.ctx.source = state
+
+current(sm::AbstractStateMachine) = sm.ctx.current
+current!(sm::AbstractStateMachine, state::Symbol) = sm.ctx.current = state
+source(sm::AbstractStateMachine) = sm.ctx.source
+source!(sm::AbstractStateMachine, state::Symbol) = sm.ctx.source = state
 
 const empty_payload = UInt8[]
-function dispatch!(sm::HierarchicalStateMachine1, event, payload=empty_payload)
+function dispatch!(sm::AbstractStateMachine, event, payload=empty_payload)
     do_event!(sm, current(sm), event, payload)
 end
 
-function do_event!(sm::HierarchicalStateMachine1, s::Symbol, event::Symbol, payload) # TODO: payload typed
+function do_event!(sm::AbstractStateMachine, s::Symbol, event::Symbol, payload) # TODO: payload typed
 
     # TODO: Darryl does this seem appropriate? We want a way 
     # to be notified if the user dispatches an event that is not accounted for
@@ -56,7 +55,7 @@ function do_event!(sm::HierarchicalStateMachine1, s::Symbol, event::Symbol, payl
     # find relevant event
 
     handled = NotHandled
-    for event′ in sm.events
+    for event′ in sm.ctx.events
         if event′.name == event && event′.state == s
             handled = event′.callback(payload)
             break
