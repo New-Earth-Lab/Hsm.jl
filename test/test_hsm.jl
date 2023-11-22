@@ -1,289 +1,266 @@
 using Revise
 # using JET
 using BenchmarkTools
-using Setfield
 using Hsm
-
-# Define all states
-struct Top <: Hsm.AbstractHsmState end
-struct State_S <: Hsm.AbstractHsmState end
-struct State_S1 <: Hsm.AbstractHsmState end
-struct State_S11 <: Hsm.AbstractHsmState end
-struct State_S2 <: Hsm.AbstractHsmState end
-struct State_S21 <: Hsm.AbstractHsmState end
-struct State_S211 <: Hsm.AbstractHsmState end
-
-# Define all events
-struct Event_A end
-struct Event_B end
-struct Event_C end
-struct Event_D end
-struct Event_E end
-struct Event_F end
-struct Event_G end
-struct Event_H end
-struct Event_I end
-
-function Hsm.on_entry!(sm::Hsm.AbstractHsmStateMachine, state::Hsm.AbstractHsmState)
-    print("$(state)-ENTRY;")
-    return sm
-end
-
-function Hsm.on_exit!(sm::Hsm.AbstractHsmStateMachine, state::Hsm.AbstractHsmState)
-    print("$(state)-EXIT;")
-    return sm
-end
-
-# Define the state machine
-struct HsmTest{TContext<:Hsm.StateMachineContext} <: Hsm.AbstractHsmStateMachine
-    context::TContext
-    # Define state machine variables
-    foo::Int
-end
-function HsmTest()
-    ctx = Hsm.StateMachineContext()
-    sm = HsmTest(ctx,0)
-    sm = Hsm.on_initialize!(sm, Top())
-    return sm
-end
-
-############
-
-# Hsm.on_initialize!(sm::HsmTest, state::Top) =
-#     Hsm.transition!(sm, State_S2) do
-        #print("$(state)-INIT;")
-#         @set sm.foo = 0
-#     end
-function Hsm.on_initialize!(sm::HsmTest, state::Top)
-    res = Hsm.transition!(sm, State_S2()) do sm
-        print("$(state)-INIT;")
-        sm = @set sm.foo = 0
-        return sm
-    end
-    return res
-end
-##############
+using Hsm: register_events!, add_state!, HierarchicalStateMachine1, StateMachineContext1, on_initialize!, on_event!, transition!, on_exit!, on_entry!, current, source, dispatch!
+using Hsm: Handled, NotHandled
 
 
-Hsm.ancestor(::State_S) = Top()
+## DEFINITION ##########################################
+# states = [
+    # (; name = :Top, ancestor=:Root),
+    # (; name = :S, ancestor=:Top),
+    # (; name = :S1, ancestor=:S),
+    # (; name = :S11, ancestor=:S1),
+    # (; name = :S2, ancestor=:S),
+    # (; name = :S21, ancestor=:S2),
+    # (; name = :S211, ancestor=:S21),
+# ]
+hsm1 = HierarchicalStateMachine1(StateMachineContext1(:Root, :Root,0) )
+register_events!(hsm1) do sm
 
-Hsm.on_initialize!(sm::HsmTest, state::State_S) =
-    Hsm.transition!(sm, State_S11()) do sm
-        print("$(state)-INIT;")
-        sm
-    end
+    add_state!(sm, name = :Top, ancestor=:Root)
+    add_state!(sm, name = :S, ancestor=:Top)
+    add_state!(sm, name = :S1, ancestor=:S)
+    add_state!(sm, name = :S11, ancestor=:S1)
+    add_state!(sm, name = :S2, ancestor=:S)
+    add_state!(sm, name = :S21, ancestor=:S2)
+    add_state!(sm, name = :S211, ancestor=:S21)
 
-Hsm.on_event!(sm::HsmTest, state::State_S, event::Event_E) =
-    Hsm.transition!(sm, State_S11()) do sm
-        print("$(state)-$(event);")
-        sm
-    end
+    # on_entry!(()->print("Top-ENTRY;"), sm, :Top)
+    # on_entry!(()->print("S-ENTRY;"), sm, :S)
+    # on_entry!(()->print("S1-ENTRY;"), sm, :S1)
+    # on_entry!(()->print("S11-ENTRY;"), sm, :S11)
+    # on_entry!(()->print("S2-ENTRY;"), sm, :S2)
+    # on_entry!(()->print("S21-ENTRY;"), sm, :S21)
+    # on_entry!(()->print("S211-ENTRY;"), sm, :S211)
 
-function Hsm.on_event!(sm::HsmTest, state::State_S, event::Event_I)
-    if sm.foo == 1
-        print("$(state)-$(event);")
-        sm = @set sm.foo = 0
-        sm = @set sm.context.handled = true
-    end
-    return sm
-end
+    # on_exit!(()->print("S-EXIT;"), sm, :S)
+    # on_exit!(()->print("S1-EXIT;"), sm, :S1)
+    # on_exit!(()->print("S11-EXIT;"), sm, :S11)
+    # on_exit!(()->print("S2-EXIT;"), sm, :S2)
+    # on_exit!(()->print("S21-EXIT;"), sm, :S21)
+    # on_exit!(()->print("S211-EXIT;"), sm, :S211)
 
-#########
-
-Hsm.ancestor(::State_S1) = State_S()
-
-Hsm.on_initialize!(sm::HsmTest, state::State_S1) =
-    Hsm.transition!(sm, State_S11()) do sm
-        print("$(state)-INIT;")
-        sm
-    end
-
-Hsm.on_event!(sm::HsmTest, state::State_S1, event::Event_A) =
-    Hsm.transition!(sm, State_S1()) do sm
-        print("$(state)-$(event);")
-        return sm
-    end
-
-Hsm.on_event!(sm::HsmTest, state::State_S1, event::Event_B) =
-    Hsm.transition!(sm, State_S11()) do sm
-        print("$(state)-$(event);")
-        return sm
-    end
-
-Hsm.on_event!(sm::HsmTest, state::State_S1, event::Event_C) =
-    Hsm.transition!(sm, State_S2()) do sm
-        print("$(state)-$(event);")
-        return sm
-    end
-
-function Hsm.on_event!(sm::HsmTest, state::State_S1, event::Event_D)
-    if sm.foo == 0
-        return Hsm.transition!(sm, State_S()) do sm
-            print("$(state)-$(event);")
-            sm = @set sm.foo = 1
+    on_initialize!(sm, :Top) do 
+        transition!(sm, :S2) do 
+            # print("Top-INIT;")
+            sm.ctx.foo = 0
         end
     end
-    return sm
-end
 
-Hsm.on_event!(sm::HsmTest, state::State_S1, event::Event_F) = 
-    Hsm.transition!(sm, State_S211()) do sm
-        print("$(state)-$(event);")
-        return sm
+    ## S
+
+    on_initialize!(sm, :S) do 
+        transition!(sm, :S11) do 
+            # print("S1-INIT")
+        end
+    end
+    on_event!(sm, :S, :E) do payload
+        transition!(sm, :S11) do 
+            # print("S11-E")
+        end
+        return Handled
+    end
+    on_event!(sm, :S, :I) do payload
+        if sm.ctx.foo == 1
+            sm.ctx.foo = 0
+            return Handled
+        end
+        return NotHandled 
     end
 
-function Hsm.on_event!(sm::HsmTest, state::State_S1, event::Event_I)
-    print("$(state)-$(event);")
-    sm = @set sm.context.handled = true
-    return sm
-end
-
-#############
-
-Hsm.ancestor(::State_S11) = State_S1()
-
-function Hsm.on_event!(sm::HsmTest, state::State_S11, event::Event_D)
-    if sm.foo == 1
-        sm = Hsm.transition!(function (sm)
-                print("$(state)-$(event);")
-                sm = @set sm.foo = 0
-                return sm
-            end, sm, State_S1())
-            @show sm.foo
+    ## S1
+    on_initialize!(sm, :S1) do 
+        transition!(sm, :S11) do
+            # print("S1-INIT;")
+        end
+        return Handled
     end
-    return sm
-end
-
-function Hsm.on_event!(sm::HsmTest, state::State_S11, event::Event_G)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S211())
-end
-
-function Hsm.on_event!(sm::HsmTest, state::State_S11, event::Event_H)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S())
-end
-
-######
-
-Hsm.ancestor(::State_S2) = State_S()
-
-function Hsm.on_initialize!(sm::HsmTest, state::State_S2)
-    Hsm.transition!(function (sm)
-            print("$(state)-INIT;")
-            return sm
-        end, sm, State_S211())
-end
-
-function Hsm.on_event!(sm::HsmTest, state::State_S2, event::Event_C)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S1())
-end
-
-function Hsm.on_event!(sm::HsmTest, state::State_S2, event::Event_F)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S11())
-end
-
-function Hsm.on_event!(sm::HsmTest, state::State_S2, event::Event_I)
-    if sm.foo == 0
-        print("$(state)-$(event);")
-        sm = @set sm.foo = 1
-        sm = @set sm.context.handled = true
+    on_event!(sm, :S1, :A) do payload
+        transition!(sm, :S1) do 
+            # print("S1-A;")
+        end
+        return Handled
     end
-    return sm
-end
 
-########
+    on_event!(sm, :S1, :B) do payload
+        transition!(sm, :S11) do
+            # print("S1-B;")
+        end
+        return Handled
+    end
 
-Hsm.ancestor(::State_S21) = State_S2()
+    on_event!(sm, :S1, :C) do payload
+        transition!(sm, :S2) do
+            # print("S2-C;")
+        end
+        return Handled
+    end
 
-function Hsm.on_initialize!(sm::HsmTest, state::State_S21)
-    Hsm.transition!(function (sm)
-            print("$(state)-INIT;")
-            return sm
-        end, sm, State_S211())
-end
+    on_event!(sm, :S1, :D) do payload
+        if sm.ctx.foo == 0
+            transition!(sm, :S) do
+                # print("S1;")
+                sm.ctx.foo = 1
+            end
+            return Handled
+        end
+        return NotHandled
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::State_S21, event::Event_A)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S21())
-end
+    on_event!(sm, :S1, :F) do payload 
+        transition!(sm, :S211) do
+            # print("S211-F;")
+        end
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::State_S21, event::Event_B)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S211())
-end
+    on_event!(sm, :S1, :I) do payload
+        # print("S1-I;")
+        return Handled
+    end
 
-function Hsm.on_event!(sm::HsmTest, state::State_S21, event::Event_G)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S11())
-end
 
-#############
+    ## S11
+    on_event!(sm, :S11, :D) do payload
+        if sm.ctx.foo == 1
+            transition!(sm, :S1) do 
+                # print("S11-D;")
+                sm.ctx.foo = 0
+            end
+            return Handled
+        end
+        return NotHandled
+    end
 
-Hsm.ancestor(::State_S211) = State_S21()
+    on_event!(sm, :S11, :G) do  payload
+        transition!(sm, :S11) do 
+            # print("S11-G;")
+        end
+        return Handled
+    end
+    
+    on_event!(sm, :S11, :H) do  payload
+        transition!(sm, :S) do 
+            # print("S11-H;")
+        end
+        return Handled
+    end
+    
 
-function Hsm.on_event!(sm::HsmTest, state::State_S211, event::Event_D)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S21())
-end
 
-function Hsm.on_event!(sm::HsmTest, state::State_S211, event::Event_H)
-    Hsm.transition!(function (sm)
-            print("$(state)-$(event);")
-            return sm
-        end, sm, State_S())
-end
 
-function dispatch!(sm, event)
-    print("$(event) - ")
-    sm = Hsm.dispatch!(sm, event)
-    print("\n")
-    return sm
-end
+    ## S2
+    on_initialize!(sm, :S2) do 
+        transition!(sm, :S211) do
+            # print("S2-INIT;")
+        end
+    end
 
-# using AllocCheck
-# @check_allocs
+    on_event!(sm, :S2, :C) do payload
+        transition!(sm, :S1) do 
+            # print("S2-C;")
+        end
+        return Handled
+    end
+
+    on_event!(sm, :S2, :F) do payload
+        transition!(sm, :S11) do 
+            # print("S2-F;")
+        end
+        return Handled
+    end
+
+    on_event!(sm, :S2, :I) do payload
+        if sm.ctx.foo == 0
+            sm.ctx.foo = 1
+            return Handled
+        end
+        return NotHandled
+    end
+
+
+    ## S21
+
+    on_initialize!(sm, :S21) do 
+        transition!(sm, :S211) do
+            # The previous S21 also transitions to S211? Is that right?
+            # print("S21-INIT;")
+        end
+    end
+    on_event!(sm, :S21, :A) do payload
+        transition!(sm, :S21) do 
+            # print("S21-A;")
+        end
+        return Handled
+    end
+    on_event!(sm, :S21, :B) do payload
+        transition!(sm, :S211) do 
+            # print("S21-B;")
+        end
+        return Handled
+    end
+    on_event!(sm, :S21, :G) do payload
+        transition!(sm, :S11) do 
+            # print("S21-G;")
+        end
+        return Handled
+    end
+
+    ## S211
+    on_initialize!(sm, :S21) do
+    end
+    on_event!(sm, :S211, :D) do payload
+        transition!(sm, :S21) do 
+            # print("S211-D;")
+        end
+        return Handled
+    end
+    on_event!(sm, :S211, :H) do payload
+        transition!(sm, :S) do 
+            # print("S211-H;")
+        end
+        return Handled
+    end
+    
+end;
+
+
+# Start by transitioning to Top
 function test(hsm)
-    hsm = dispatch!(hsm, Event_A())
-    hsm = dispatch!(hsm, Event_B())
-    hsm = dispatch!(hsm, Event_D())
-    hsm = dispatch!(hsm, Event_E())
-    hsm = dispatch!(hsm, Event_I())
-    hsm = dispatch!(hsm, Event_F())
-    hsm = dispatch!(hsm, Event_I())
-    hsm = dispatch!(hsm, Event_I())
-    hsm = dispatch!(hsm, Event_F())
-    hsm = dispatch!(hsm, Event_A())
-    hsm = dispatch!(hsm, Event_B())
-    hsm = dispatch!(hsm, Event_D())
-    hsm = dispatch!(hsm, Event_D())
-    hsm = dispatch!(hsm, Event_E())
-    hsm = dispatch!(hsm, Event_G())
-    hsm = dispatch!(hsm, Event_H())
-    hsm = dispatch!(hsm, Event_H())
-    hsm = dispatch!(hsm, Event_C())
-    hsm = dispatch!(hsm, Event_G())
-    hsm = dispatch!(hsm, Event_C())
-    hsm = dispatch!(hsm, Event_C())
+    # Yuck, initial initialization is painful
+    # call on_initialize callback of Top:
+    for I in hsm.initializes
+        if I.state == :Top
+            I.callback()
+        end
+    end
+    # transition!(hsm, :Top)
+    dispatch!(hsm, :A)
+    dispatch!(hsm, :B)
+    dispatch!(hsm, :D)
+    dispatch!(hsm, :E)
+    dispatch!(hsm, :I)
+    dispatch!(hsm, :F)
+    dispatch!(hsm, :I)
+    dispatch!(hsm, :I)
+    dispatch!(hsm, :F)
+    dispatch!(hsm, :A)
+    dispatch!(hsm, :B)
+    dispatch!(hsm, :D)
+    dispatch!(hsm, :D)
+    dispatch!(hsm, :E)
+    dispatch!(hsm, :G)
+    dispatch!(hsm, :H)
+    dispatch!(hsm, :H)
+    dispatch!(hsm, :C)
+    dispatch!(hsm, :G)
+    dispatch!(hsm, :C)
+    dispatch!(hsm, :C)
+    
+    return
 end
-
-hsm = HsmTest()
-test(hsm)
+@btime test(hsm1)
+# TODO: initial transition to Top is calling initialize but not leaving us in S1
+# Bit confused about Top vs Root
+# Game plan about the weird double init of the HSM: Don't pass in hsm just to push. Create two kinds of objects, one to hold everything, and a "real" one to put them when done.

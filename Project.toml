@@ -4,4 +4,5 @@ authors = ["Darryl Gamroth <dgamroth@rubus.ca>"]
 version = "0.2.1"
 
 [deps]
+FunctionWrappers = "069b7b12-0de2-55c6-9aab-29f3d0a68a2e"
 Setfield = "efcf1570-3423-57d1-acb7-fd33fddbac46"

@@ -1,139 +1,113 @@
-struct Root <: AbstractHsmState end
-ancestor(::AbstractHsmState) = Root()
-on_initialize!(sm::AbstractHsmStateMachine, ::AbstractHsmState) = sm
-on_entry!(sm::AbstractHsmStateMachine, ::AbstractHsmState) = sm
-on_exit!(sm::AbstractHsmStateMachine, ::AbstractHsmState) = sm
 
-function do_entry!(sm::AbstractHsmStateMachine, s::AbstractHsmState, t::AbstractHsmState)
+function do_entry!(sm::HierarchicalStateMachine1, s::Symbol, t::Symbol)
     if s === t
-        return sm
+        return
     end
-    sm = do_entry!(sm, s, ancestor(t))
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    do_entry!(sm, s, ancestor(sm, t))
+    current!(sm, t)
+    # Call on_entry callback
+    for enter′ in sm.enters
+        if enter′.state == t
+            enter′.callback()
+            break
+        end
     end
-    sm = current!(sm, t)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
-    sm = on_entry!(sm, t)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
-    return sm
+    return
 end
 
-function do_exit!(sm::AbstractHsmStateMachine, s::AbstractHsmState, t::AbstractHsmState)
+
+
+function do_exit!(sm::HierarchicalStateMachine1, s::Symbol, t::Symbol)
     if s === t
-        return sm
+        return
     end
-    sm = on_exit!(sm, s)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    # Call on_exit callback
+    for exit′ in sm.exits
+        if exit′.state == s
+            exit′.callback()
+            break
+        end
     end
-    a = ancestor(s)
-    sm = current!(sm, a)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
-    sm = do_exit!(sm, a, t)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
-    return sm
+    a = current!(sm, ancestor(sm,s))
+    do_exit!(sm, a, t)
+    return
 end
 
-function transition!(sm::AbstractHsmStateMachine, target::AbstractHsmState)
+function transition!(sm::HierarchicalStateMachine1, target::Symbol)
     transition!(Returns(nothing), sm, target)
 end
 
-function transition!(action::Function, sm::AbstractHsmStateMachine, target::AbstractHsmState)
+# TODO: work in progress
+function transition!(action::Function, sm::HierarchicalStateMachine1, target::Symbol)
     c = current(sm)
     s = source(sm)
-    lca = find_lca(s, target)
+    lca = find_lca(sm, s, target)
 
     # Perform exit transitions from the current state
-    sm = do_exit!(sm, c, lca)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
+    do_exit!(sm, c, lca)
 
     # Call action function
-    sm = action(sm)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
+    action()
+
     
     # Perform entry transitions to the target state
-    sm = do_entry!(sm, lca, target)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
+    do_entry!(sm, lca, target)
 
     # Set the source to current for initialize transitions
-    sm = source!(sm, target)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
+    source!(sm, target)
+
+    # Call on_initialize callback
+    for initialize′ in sm.initializes
+        if initialize′.state == target
+            initialize′.callback()
+            break
+        end
     end
 
-    sm = on_initialize!(sm, target)
-    if isnothing(sm)
-        error("Error in state machine definition. `nothing` returned instead of an updated state machine.")
-    end
-
-    sm = @set sm.context.handled = true
-
-    return sm
+    return Handled
 end
 
-function find_lca(source::AbstractHsmState, target::AbstractHsmState)
+function ancestor(hsm1::HierarchicalStateMachine1, state::Symbol)
+    for state′ in hsm1.states
+        if state′.name == state
+            return state′.ancestor
+        end
+    end
+    return :Root
+end
+
+function find_lca(hsm1::HierarchicalStateMachine1, source::Symbol, target::Symbol)
     # Special case for transition to self
     if source === target
-        return ancestor(source)
-    elseif source === ancestor(target)
+        return ancestor(hsm1, source)
+    elseif source === ancestor(hsm1, target)
         return source
-    elseif ancestor(source) === target
+    elseif ancestor(hsm1, source) === target
         return target
     end
-    find_lca_recursive(source, target)
+    find_lca_loop(hsm1, source, target)
+end
+# Could put Base.@assume_effects :terminates_locally
+function find_lca_loop(sm::HierarchicalStateMachine1, source, target)
+    while source !== :Root
+        t = target
+        while t !== :Root
+            if t === source
+                return t
+            end
+            t = ancestor(sm, t)
+        end
+        source = ancestor(sm, source)
+    end
+    return :Root
 end
 
 # Is 'a' a child of 'b'
-function isancestorof(a, b)
-    if a === Root() || b === Root()
+function isancestorof(hsm, a::Symbol, b::Symbol)
+    if a === :Root || b === :Root
         return false
     elseif a === b
         return true
     end
-    isancestorof(ancestor(a), b)
-end
-
-function find_lca_recursive(source, target)
-    if source === Root() || target === Root()
-        return Root()
-    end
-
-    if source === target
-        return source
-    end
-
-    if isancestorof(source, target)
-        return find_lca_recursive(ancestor(source), target)
-    else
-        return find_lca_recursive(source, ancestor(target))
-    end
-end
-
-function find_lca_loop(source, target)
-    while source !== Root()
-        t = target
-        while t !== Root()
-            if t === source
-                return t
-            end
-            t = ancestor(t)
-        end
-        source = ancestor(source)
-    end
-    return Root()
-end
+    isancestorof(hsm, ancestor(hsm, a), b)
+end # TODO: this naming is bad! Should be ischildof!
