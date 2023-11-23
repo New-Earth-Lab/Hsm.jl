@@ -9,22 +9,22 @@ function on_event!(callback::Base.Callable, sm::AbstractStateMachine, state_name
     fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8}}}(callback) # Works!
     # fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8},typeof(typer)}}(our_callback)
     # fw = @cfunction($our_callback, Cvoid, (Vector{UInt8},))
-    push!(sm.ctx.events, (; name=event_name, state=state_name, callback=fw))
+    push!(sm.ctx.event_callbacks, (; name=event_name, state=state_name, callback=fw))
     return nothing
 end
 function on_entry!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol,)
     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-    push!(sm.ctx.enters, (; state=state_name, callback=fw))
+    push!(sm.ctx.enter_callbacks, (; state=state_name, callback=fw))
     return nothing
 end
 function on_exit!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol,)
     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-    push!(sm.ctx.exits, (; state=state_name, callback=fw))
+    push!(sm.ctx.exit_callbacks, (; state=state_name, callback=fw))
     return nothing
 end
 function on_initialize!(callback::Base.Callable, sm::AbstractStateMachine, state_name::Symbol,)
     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-    push!(sm.ctx.initializes, (; state=state_name, callback=fw))
+    push!(sm.ctx.initialize_callbacks, (; state=state_name, callback=fw))
     return nothing
 end
 

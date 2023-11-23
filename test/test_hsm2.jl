@@ -228,7 +228,7 @@ using AllocCheck
 #     fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8}}}(callback) # Works!
 #     # fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8},typeof(typer)}}(our_callback)
 #     # fw = @cfunction($our_callback, Cvoid, (Vector{UInt8},))
-#     push!(sm.events, (; name=event_name, state=state_name, callback=fw))
+#     push!(sm.event_callbacks, (; name=event_name, state=state_name, callback=fw))
 #     return nothing
 # end
 # function on_entry!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
@@ -239,7 +239,7 @@ using AllocCheck
 #     #     @warn "Provided on_entry! callback will allocate. This is bad for real-time performance!" allocations
 #     # end
 #     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-#     push!(sm.enters, (; state=state_name, callback=fw))
+#     push!(sm.enter_callbacks, (; state=state_name, callback=fw))
 #     return nothing
 # end
 # function on_exit!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
@@ -250,7 +250,7 @@ using AllocCheck
 #     #     @warn "Provided on_exit! callback will allocate. This is bad for real-time performance!" allocations
 #     # end
 #     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-#     push!(sm.exits, (; state=state_name, callback=fw))
+#     push!(sm.exit_callbacks, (; state=state_name, callback=fw))
 #     return nothing
 # end
 # function on_initialize!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
@@ -261,7 +261,7 @@ using AllocCheck
 #     #     @warn "Provided on_initialize! callback will allocate. This is bad for real-time performance!" allocations
 #     # end
 #     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-#     push!(sm.initializes, (; state=state_name, callback=fw))
+#     push!(sm.initialize_callbacks, (; state=state_name, callback=fw))
 #     return nothing
 # end
 
@@ -326,13 +326,13 @@ using AllocCheck
 # end
 
 # # Is 'a' a child of 'b'
-# function isancestorof(hsm, a::Symbol, b::Symbol)
+# function ischildof(hsm, a::Symbol, b::Symbol)
 #     if a === :Root || b === :Root
 #         return false
 #     elseif a === b
 #         return true
 #     end
-#     isancestorof(hsm, ancestor(hsm, a), b)
+#     ischildof(hsm, ancestor(hsm, a), b)
 # end # TODO: this naming is bad! Should be ischildof!
 
 ##
@@ -363,7 +363,7 @@ using AllocCheck
 #     # Set the source to current for initialize transitions
 #     source!(sm, target)
 
-#     for initialize′ in sm.initializes
+#     for initialize′ in sm.initialize_callbacks
 #         if initialize′.state == target
 #             initialize′.callback()
 #             break
@@ -379,7 +379,7 @@ using AllocCheck
 #     end
 #     do_entry!(sm, s, ancestor(sm, t))
 #     current!(sm, t)
-#     for enter′ in sm.enters
+#     for enter′ in sm.enter_callbacks
 #         if enter′.state == t
 #             enter′.callback()
 #             break
@@ -394,7 +394,7 @@ using AllocCheck
 #     if s === t
 #         return
 #     end
-#     for exit′ in sm.exits
+#     for exit′ in sm.exit_callbacks
 #         if exit′.state == s
 #             exit′.callback()
 #             break
@@ -425,7 +425,7 @@ using AllocCheck
 #     # find relevant event
 
 #     handled = NotHandled
-#     for event′ in sm.events
+#     for event′ in sm.event_callbacks
 #         if event′.name == event && event′.state == s
 #             handled = event′.callback(payload)
 #             break
@@ -459,10 +459,10 @@ function register_events!(callback, hsm1)
 
     hsm1 = StateMachineContext(
         tuple(hsm1.states...), 
-        tuple(hsm1.events...), 
-        tuple(hsm1.exits...), 
-        tuple(hsm1.enters...), 
-        tuple(hsm1.initializes...), 
+        tuple(hsm1.event_callbacks...), 
+        tuple(hsm1.exit_callbacks...), 
+        tuple(hsm1.enter_callbacks...), 
+        tuple(hsm1.initialize_callbacks...), 
         StateMachineContext1(:S, :S,0) 
     )
 end
@@ -499,7 +499,7 @@ end
 payload = zeros(UInt8, 10)
 @time ancestor(hsm1, :S211)
 @time find_lca(hsm1, :S21, :S11)
-@time isancestorof(hsm1, :S2, :S21)
+@time ischildof(hsm1, :S2, :S21)
 hsm1.ctx.current = :S2
 transition!(hsm1, :S211)
 transition!(hsm1, :S11)
@@ -740,7 +740,7 @@ end;
 # Start by transitioning to Top
 function test(hsm)
     # Yuck, initial initialization is painful
-    # for I in hsm1.initializes
+    # for I in hsm1.initialize_callbacks
     #     if I.state == :Top
     #         I.callback()
     #     end

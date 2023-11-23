@@ -1,4 +1,3 @@
-
 function do_entry!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     if s === t
         return
@@ -6,25 +5,23 @@ function do_entry!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     do_entry!(sm, s, ancestor(sm, t))
     current!(sm, t)
     # Call on_entry callback
-    for enter′ in sm.ctx.enters
-        if enter′.state == t
-            enter′.callback()
+    for enter_callbacks in sm.ctx.enter_callbacks
+        if enter_callbacks.state == t
+            enter_callbacks.callback()
             break
         end
     end
     return
 end
 
-
-
 function do_exit!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     if s === t
         return
     end
     # Call on_exit callback
-    for exit′ in sm.ctx.exits
-        if exit′.state == s
-            exit′.callback()
+    for exit_callbacks in sm.ctx.exit_callbacks
+        if exit_callbacks.state == s
+            exit_callbacks.callback()
             break
         end
     end
@@ -48,7 +45,6 @@ function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
 
     # Call action function
     action()
-
     
     # Perform entry transitions to the target state
     do_entry!(sm, lca, target)
@@ -57,9 +53,9 @@ function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
     source!(sm, target)
 
     # Call on_initialize callback
-    for initialize′ in sm.ctx.initializes
-        if initialize′.state == target
-            initialize′.callback()
+    for initialize_callbacks in sm.ctx.initialize_callbacks
+        if initialize_callbacks.state == target
+            initialize_callbacks.callback()
             break
         end
     end
@@ -68,9 +64,9 @@ function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
 end
 
 function ancestor(hsm1::AbstractStateMachine, state::Symbol)
-    for state′ in hsm1.ctx.states
-        if state′.name == state
-            return state′.ancestor
+    for state_prime in hsm1.ctx.states
+        if state_prime.name == state
+            return state_prime.ancestor
         end
     end
     return :Root
@@ -110,4 +106,4 @@ function ischildof(hsm, a::Symbol, b::Symbol)
         return true
     end
     ischildof(hsm, ancestor(hsm, a), b)
-end # TODO: this naming is bad! Should be ischildof!
+end

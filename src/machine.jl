@@ -11,10 +11,10 @@ const T_initialize = @NamedTuple{state::Symbol, callback::FunctionWrappers.Funct
 mutable struct StateMachineContext
     # These vectors are constant bindings but can be modified
     const states::Vector{@NamedTuple{name::Symbol, ancestor::Symbol}}
-    const events::Vector{@NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}}
-    const exits::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    const enters::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    const initializes::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    const event_callbacks::Vector{@NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}}
+    const exit_callbacks::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    const enter_callbacks::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    const initialize_callbacks::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
     current::Symbol
     source::Symbol
     # history::Symbol
@@ -53,9 +53,9 @@ function do_event!(sm::AbstractStateMachine, s::Symbol, event::Symbol, payload) 
     # Find the main source state by calling on_event! until the event is handled
     # on_event!
     handled = NotHandled
-    for event′ in sm.ctx.events
-        if event′.name == event && event′.state == s
-            handled = event′.callback(payload)
+    for event_prime in sm.ctx.event_callbacks
+        if event_prime.name == event && event_prime.state == s
+            handled = event_prime.callback(payload)
             break
         end
     end

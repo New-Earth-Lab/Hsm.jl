@@ -223,7 +223,7 @@ end;
 function test(hsm)
     # Yuck, initial initialization is painful
     # call on_initialize callback of Top:
-    # for I in hsm.ctx.initializes
+    # for I in hsm.ctx.initialize_callbacks
     #     if I.state == :Top
     #         I.callback()
     #     end
