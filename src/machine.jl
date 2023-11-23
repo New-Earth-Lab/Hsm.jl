@@ -29,7 +29,6 @@ StateMachineContext() = StateMachineContext(
     :Root,
 )
 
-
 current(sm::AbstractStateMachine) = sm.ctx.current
 current!(sm::AbstractStateMachine, state::Symbol) = sm.ctx.current = state
 source(sm::AbstractStateMachine) = sm.ctx.source
@@ -49,11 +48,10 @@ function do_event!(sm::AbstractStateMachine, s::Symbol, event::Symbol, payload) 
         error(lazy"Event $event not handled by any states up to Root")
     end
 
-    # Find the main source state by calling on_event! until the event is handled
     source!(sm, s)
-    # on_event!(sm, s , event)
-    # find relevant event
 
+    # Find the main source state by calling on_event! until the event is handled
+    # on_event!
     handled = NotHandled
     for event′ in sm.ctx.events
         if event′.name == event && event′.state == s

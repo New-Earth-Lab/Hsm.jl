@@ -103,11 +103,11 @@ function find_lca_loop(sm::AbstractStateMachine, source, target)
 end
 
 # Is 'a' a child of 'b'
-function isancestorof(hsm, a::Symbol, b::Symbol)
+function ischildof(hsm, a::Symbol, b::Symbol)
     if a === :Root || b === :Root
         return false
     elseif a === b
         return true
     end
-    isancestorof(hsm, ancestor(hsm, a), b)
+    ischildof(hsm, ancestor(hsm, a), b)
 end # TODO: this naming is bad! Should be ischildof!
