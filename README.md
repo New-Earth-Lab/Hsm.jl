@@ -2,7 +2,7 @@
 
 This package provides tools for implementing hierarchical state machines in Julia, in an efficient and zero-allocation way.
 
-This library started as a fork of (HSM.jl)[https://github.com/AndrewWasHere/HSM.jl] by Andrew Lin. See their (accompanying blog post)[https://andrewwashere.github.io/2022/05/21/state-machines.html] for more information.
+This library started as a fork of [HSM.jl](https://github.com/AndrewWasHere/HSM.jl) by Andrew Lin. See their [accompanying blog post](https://andrewwashere.github.io/2022/05/21/state-machines.html) for more information.
 
 ## Usage
 
