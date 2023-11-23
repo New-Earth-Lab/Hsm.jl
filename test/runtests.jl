@@ -183,42 +183,42 @@ end;
 
 
 
-# @testset "Basics" begin
+@testset "Basics" begin
 
-#     @test Hsm.ancestor(mysm, :Top) == :Root
-#     @test Hsm.ancestor(mysm, :S) == :Top
-#     @test Hsm.ancestor(mysm, :S1) == :S
-#     @test Hsm.ancestor(mysm, :S11) == :S1
-#     @test Hsm.ancestor(mysm, :S2) == :S
-#     @test Hsm.ancestor(mysm, :S21) == :S2
-#     @test Hsm.ancestor(mysm, :S211) == :S21
+    @test Hsm.ancestor(mysm, :Top) == :Root
+    @test Hsm.ancestor(mysm, :S) == :Top
+    @test Hsm.ancestor(mysm, :S1) == :S
+    @test Hsm.ancestor(mysm, :S11) == :S1
+    @test Hsm.ancestor(mysm, :S2) == :S
+    @test Hsm.ancestor(mysm, :S21) == :S2
+    @test Hsm.ancestor(mysm, :S211) == :S21
 
 
-#     @test Hsm.ischildof(mysm, :S, :Top)
+    @test Hsm.ischildof(mysm, :S, :Top)
     
-#     @test Hsm.ischildof(mysm, :S1, :S)
-#     @test Hsm.ischildof(mysm, :S1, :Top)
+    @test Hsm.ischildof(mysm, :S1, :S)
+    @test Hsm.ischildof(mysm, :S1, :Top)
 
-#     @test Hsm.ischildof(mysm, :S11, :S1)
-#     @test Hsm.ischildof(mysm, :S11, :S)
-#     @test Hsm.ischildof(mysm, :S11, :Top)
+    @test Hsm.ischildof(mysm, :S11, :S1)
+    @test Hsm.ischildof(mysm, :S11, :S)
+    @test Hsm.ischildof(mysm, :S11, :Top)
 
-#     @test Hsm.ischildof(mysm, :S2, :S)
-#     @test Hsm.ischildof(mysm, :S2, :Top)
+    @test Hsm.ischildof(mysm, :S2, :S)
+    @test Hsm.ischildof(mysm, :S2, :Top)
 
-#     @test Hsm.ischildof(mysm, :S21, :S2)
-#     @test Hsm.ischildof(mysm, :S21, :S)
-#     @test Hsm.ischildof(mysm, :S21, :Top)
+    @test Hsm.ischildof(mysm, :S21, :S2)
+    @test Hsm.ischildof(mysm, :S21, :S)
+    @test Hsm.ischildof(mysm, :S21, :Top)
 
-#     @test Hsm.ischildof(mysm, :S211, :S21)
-#     @test Hsm.ischildof(mysm, :S211, :S2)
-#     @test Hsm.ischildof(mysm, :S211, :S)
-#     @test Hsm.ischildof(mysm, :S211, :Top)
+    @test Hsm.ischildof(mysm, :S211, :S21)
+    @test Hsm.ischildof(mysm, :S211, :S2)
+    @test Hsm.ischildof(mysm, :S211, :S)
+    @test Hsm.ischildof(mysm, :S211, :Top)
 
 
-#     @test Hsm.find_lca(mysm, :S211, :S11) == :S
+    @test Hsm.find_lca(mysm, :S211, :S11) == :S
 
-# end
+end
 
 
 @testset "All 4 Level HSM transitions" begin
