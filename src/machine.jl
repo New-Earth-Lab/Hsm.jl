@@ -39,13 +39,14 @@ function dispatch!(sm::AbstractStateMachine, event, payload=empty_payload)
     do_event!(sm, current(sm), event, payload)
 end
 
-function do_event!(sm::AbstractStateMachine, s::Symbol, event::Symbol, payload) # TODO: payload typed
+function do_event!(sm::AbstractStateMachine, s::Union{Symbol, AbstractString}, event::Symbol, payload) # TODO: payload typed
 
     # TODO: Darryl does this seem appropriate? We want a way 
     # to be notified if the user dispatches an event that is not accounted for
     # at all or handled all the way up the state machine.
     if s == :Root
-        error(lazy"Event $event not handled by any states up to Root")
+        @warn "Event not handled by any states up to Root" event maxlog=1
+        return
     end
 
     source!(sm, s)
