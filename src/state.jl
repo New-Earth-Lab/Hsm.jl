@@ -1,102 +1,109 @@
-struct Root <: AbstractHsmState end
-ancestor(::Type{<:AbstractHsmState}) = Root
-on_initialize!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
-on_entry!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
-on_exit!(::AbstractHsmStateMachine, ::Type{<:AbstractHsmState}) = nothing
-
-function do_entry!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
+function do_entry!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     if s === t
         return
     end
-    do_entry!(sm, s, ancestor(t))
+    do_entry!(sm, s, ancestor(sm, t))
     current!(sm, t)
-    on_entry!(sm, t)
+    # Call on_entry callback
+    for enter_callbacks in sm.ctx.enter_callbacks
+        if enter_callbacks.state == t
+            enter_callbacks.callback()
+            break
+        end
+    end
     return
 end
 
-function do_exit!(sm::AbstractHsmStateMachine, s::Type{<:AbstractHsmState}, t::Type{<:AbstractHsmState})
+function do_exit!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
     if s === t
         return
     end
-    on_exit!(sm, s)
-    a = current!(sm, ancestor(s))
+    # Call on_exit callback
+    for exit_callbacks in sm.ctx.exit_callbacks
+        if exit_callbacks.state == s
+            exit_callbacks.callback()
+            break
+        end
+    end
+    a = current!(sm, ancestor(sm,s))
     do_exit!(sm, a, t)
+    return
 end
 
-function transition!(sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
+function transition!(sm::AbstractStateMachine, target::Symbol)
     transition!(Returns(nothing), sm, target)
 end
 
-function transition!(action::Function, sm::AbstractHsmStateMachine, target::Type{<:AbstractHsmState})
+# TODO: work in progress
+function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
     c = current(sm)
     s = source(sm)
-    lca = find_lca(s, target)
+    lca = find_lca(sm, s, target)
 
     # Perform exit transitions from the current state
     do_exit!(sm, c, lca)
 
     # Call action function
     action()
-
+    
     # Perform entry transitions to the target state
     do_entry!(sm, lca, target)
 
     # Set the source to current for initialize transitions
     source!(sm, target)
 
-    on_initialize!(sm, target)
+    # Call on_initialize callback
+    for initialize_callbacks in sm.ctx.initialize_callbacks
+        if initialize_callbacks.state == target
+            initialize_callbacks.callback()
+            break
+        end
+    end
 
-    return EventHandled
+    return Handled
 end
 
-function find_lca(source::Type{<:AbstractHsmState}, target::Type{<:AbstractHsmState})
+function ancestor(hsm1::AbstractStateMachine, state::Symbol)
+    for state_prime in hsm1.ctx.states
+        if state_prime.name == state
+            return state_prime.ancestor
+        end
+    end
+    return :Root
+end
+
+function find_lca(hsm1::AbstractStateMachine, source::Symbol, target::Symbol)
     # Special case for transition to self
     if source === target
-        return ancestor(source)
-    elseif source === ancestor(target)
+        return ancestor(hsm1, source)
+    elseif source === ancestor(hsm1, target)
         return source
-    elseif ancestor(source) === target
+    elseif ancestor(hsm1, source) === target
         return target
     end
-    find_lca_recursive(source, target)
+    find_lca_loop(hsm1, source, target)
+end
+# Could put Base.@assume_effects :terminates_locally
+function find_lca_loop(sm::AbstractStateMachine, source, target)
+    while source !== :Root
+        t = target
+        while t !== :Root
+            if t === source
+                return t
+            end
+            t = ancestor(sm, t)
+        end
+        source = ancestor(sm, source)
+    end
+    return :Root
 end
 
 # Is 'a' a child of 'b'
-function isancestorof(@nospecialize(a), @nospecialize(b))
-    if a === Root || b === Root
+function ischildof(hsm, a::Symbol, b::Symbol)
+    if a === :Root || b === :Root
         return false
     elseif a === b
         return true
     end
-    isancestorof(ancestor(a), b)
-end
-
-function find_lca_recursive(@nospecialize(source), @nospecialize(target))
-    if source === Root || target === Root
-        return Root
-    end
-
-    if source === target
-        return source
-    end
-
-    if isancestorof(source, target)
-        return find_lca_recursive(ancestor(source), target)
-    else
-        return find_lca_recursive(source, ancestor(target))
-    end
-end
-
-function find_lca_loop(@nospecialize(source), @nospecialize(target))
-    while source !== Root
-        t = target
-        while t !== Root
-            if t === source
-                return t
-            end
-            t = ancestor(t)
-        end
-        source = ancestor(source)
-    end
-    return Root
+    ischildof(hsm, ancestor(hsm, a), b)
 end

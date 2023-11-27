@@ -1,3 +1,4 @@
+using Test
 using Hsm
 
 mutable struct MyStateMachine <: Hsm.AbstractStateMachine
@@ -18,24 +19,9 @@ Hsm.register_events!(mysm) do sm
     Hsm.add_state!(sm, name = :S21, ancestor=:S2)
     Hsm.add_state!(sm, name = :S211, ancestor=:S21)
 
-    # Hsm.on_entry!(()->print("Top-ENTRY;"), sm, :Top)
-    # Hsm.on_entry!(()->print("S-ENTRY;"), sm, :S)
-    # Hsm.on_entry!(()->print("S1-ENTRY;"), sm, :S1)
-    # Hsm.on_entry!(()->print("S11-ENTRY;"), sm, :S11)
-    # Hsm.on_entry!(()->print("S2-ENTRY;"), sm, :S2)
-    # Hsm.on_entry!(()->print("S21-ENTRY;"), sm, :S21)
-    # Hsm.on_entry!(()->print("S211-ENTRY;"), sm, :S211)
-
-    # Hsm.on_exit!(()->print("S-EXIT;"), sm, :S)
-    # Hsm.on_exit!(()->print("S1-EXIT;"), sm, :S1)
-    # Hsm.on_exit!(()->print("S11-EXIT;"), sm, :S11)
-    # Hsm.on_exit!(()->print("S2-EXIT;"), sm, :S2)
-    # Hsm.on_exit!(()->print("S21-EXIT;"), sm, :S21)
-    # Hsm.on_exit!(()->print("S211-EXIT;"), sm, :S211)
 
     Hsm.on_initialize!(sm, :Top) do 
         Hsm.transition!(sm, :S2) do 
-            # print("Top-INIT;")
             sm.foo = 0
         end
     end
@@ -44,18 +30,15 @@ Hsm.register_events!(mysm) do sm
 
     Hsm.on_initialize!(sm, :S) do 
         Hsm.transition!(sm, :S11) do 
-            # print("S1-INIT")
         end
     end
     Hsm.on_event!(sm, :S, :E) do payload
         Hsm.transition!(sm, :S11) do 
-            # print("S11-E")
         end
         return Hsm.Handled
     end
     Hsm.on_event!(sm, :S, :I) do payload
         if sm.foo == 1
-            # print("S-I")
             sm.foo = 0
             return Hsm.Handled
         end
@@ -65,27 +48,23 @@ Hsm.register_events!(mysm) do sm
     ## S1
     Hsm.on_initialize!(sm, :S1) do 
         Hsm.transition!(sm, :S11) do
-            # print("S1-INIT;")
         end
         return Hsm.Handled
     end
     Hsm.on_event!(sm, :S1, :A) do payload
         Hsm.transition!(sm, :S1) do 
-            # print("S1-A;")
         end
         return Hsm.Handled
     end
 
     Hsm.on_event!(sm, :S1, :B) do payload
         Hsm.transition!(sm, :S11) do
-            # print("S1-B;")
         end
         return Hsm.Handled
     end
 
     Hsm.on_event!(sm, :S1, :C) do payload
         Hsm.transition!(sm, :S2) do
-            # print("S2-C;")
         end
         return Hsm.Handled
     end
@@ -93,7 +72,6 @@ Hsm.register_events!(mysm) do sm
     Hsm.on_event!(sm, :S1, :D) do payload
         if sm.foo == 0
             Hsm.transition!(sm, :S) do
-                # print("S1;")
                 sm.foo = 1
             end
             return Hsm.Handled
@@ -103,12 +81,10 @@ Hsm.register_events!(mysm) do sm
 
     Hsm.on_event!(sm, :S1, :F) do payload 
         Hsm.transition!(sm, :S211) do
-            # print("S211-F;")
         end
     end
 
     Hsm.on_event!(sm, :S1, :I) do payload
-        # print("S1-I;")
         return Hsm.Handled
     end
 
@@ -117,7 +93,6 @@ Hsm.register_events!(mysm) do sm
     Hsm.on_event!(sm, :S11, :D) do payload
         if sm.foo == 1
             Hsm.transition!(sm, :S1) do 
-                # print("S11-D;")
                 sm.foo = 0
             end
             return Hsm.Handled
@@ -127,14 +102,12 @@ Hsm.register_events!(mysm) do sm
 
     Hsm.on_event!(sm, :S11, :G) do  payload
         Hsm.transition!(sm, :S211) do
-            # print("S11-G;")
         end
         return Hsm.Handled
     end
     
     Hsm.on_event!(sm, :S11, :H) do  payload
         Hsm.transition!(sm, :S) do 
-            # print("S11-H;")
         end
         return Hsm.Handled
     end
@@ -145,27 +118,23 @@ Hsm.register_events!(mysm) do sm
     ## S2
     Hsm.on_initialize!(sm, :S2) do 
         Hsm.transition!(sm, :S211) do
-            # print("S2-INIT;")
         end
     end
 
     Hsm.on_event!(sm, :S2, :C) do payload
         Hsm.transition!(sm, :S1) do 
-            # print("S2-C;")
         end
         return Hsm.Handled
     end
 
     Hsm.on_event!(sm, :S2, :F) do payload
         Hsm.transition!(sm, :S11) do 
-            # print("S2-F;")
         end
         return Hsm.Handled
     end
 
     Hsm.on_event!(sm, :S2, :I) do payload
         if sm.foo == 0
-            # print("S2-I")
             sm.foo = 1
             return Hsm.Handled
         end
@@ -178,24 +147,20 @@ Hsm.register_events!(mysm) do sm
     Hsm.on_initialize!(sm, :S21) do 
         Hsm.transition!(sm, :S211) do
             # The previous S21 also transitions to S211? Is that right?
-            # print("S21-INIT;")
         end
     end
     Hsm.on_event!(sm, :S21, :A) do payload
         Hsm.transition!(sm, :S21) do 
-            # print("S21-A;")
         end
         return Hsm.Handled
     end
     Hsm.on_event!(sm, :S21, :B) do payload
         Hsm.transition!(sm, :S211) do 
-            # print("S21-B;")
         end
         return Hsm.Handled
     end
     Hsm.on_event!(sm, :S21, :G) do payload
         Hsm.transition!(sm, :S11) do 
-            # print("S21-G;")
         end
         return Hsm.Handled
     end
@@ -205,13 +170,11 @@ Hsm.register_events!(mysm) do sm
     end
     Hsm.on_event!(sm, :S211, :D) do payload
         Hsm.transition!(sm, :S21) do 
-            # print("S211-D;")
         end
         return Hsm.Handled
     end
     Hsm.on_event!(sm, :S211, :H) do payload
         Hsm.transition!(sm, :S) do 
-            # print("S211-H;")
         end
         return Hsm.Handled
     end
@@ -219,46 +182,151 @@ Hsm.register_events!(mysm) do sm
 end;
 
 
-# Start by transitioning to Top
-function test(hsm)
-    # Yuck, initial initialization is painful
-    # call on_initialize callback of Top:
-    # for I in hsm.ctx.initialize_callbacks
-    #     if I.state == :Top
-    #         I.callback()
-    #     end
-    # end
 
-    function dispatch!(hsm, event)
-        # print("$event:")
-        Hsm.dispatch!(hsm, event)
-        # println()
-    end
+@testset "Basics" begin
 
-    Hsm.transition!(hsm, :Top)
-    Hsm.dispatch!(hsm, :A)
-    Hsm.dispatch!(hsm, :B)
-    Hsm.dispatch!(hsm, :D)
-    Hsm.dispatch!(hsm, :E)
-    Hsm.dispatch!(hsm, :I)
-    Hsm.dispatch!(hsm, :F)
-    Hsm.dispatch!(hsm, :I)
-    Hsm.dispatch!(hsm, :I)
-    Hsm.dispatch!(hsm, :F)
-    Hsm.dispatch!(hsm, :A)
-    Hsm.dispatch!(hsm, :B)
-    Hsm.dispatch!(hsm, :D)
-    Hsm.dispatch!(hsm, :D)
-    Hsm.dispatch!(hsm, :E)
-    Hsm.dispatch!(hsm, :G)
-    Hsm.dispatch!(hsm, :H)
-    Hsm.dispatch!(hsm, :H)
-    Hsm.dispatch!(hsm, :C)
-    Hsm.dispatch!(hsm, :G)
-    Hsm.dispatch!(hsm, :C)
-    Hsm.dispatch!(hsm, :C)
+    @test Hsm.ancestor(mysm, :Top) == :Root
+    @test Hsm.ancestor(mysm, :S) == :Top
+    @test Hsm.ancestor(mysm, :S1) == :S
+    @test Hsm.ancestor(mysm, :S11) == :S1
+    @test Hsm.ancestor(mysm, :S2) == :S
+    @test Hsm.ancestor(mysm, :S21) == :S2
+    @test Hsm.ancestor(mysm, :S211) == :S21
+
+
+    @test Hsm.ischildof(mysm, :S, :Top)
     
-    return
+    @test Hsm.ischildof(mysm, :S1, :S)
+    @test Hsm.ischildof(mysm, :S1, :Top)
+
+    @test Hsm.ischildof(mysm, :S11, :S1)
+    @test Hsm.ischildof(mysm, :S11, :S)
+    @test Hsm.ischildof(mysm, :S11, :Top)
+
+    @test Hsm.ischildof(mysm, :S2, :S)
+    @test Hsm.ischildof(mysm, :S2, :Top)
+
+    @test Hsm.ischildof(mysm, :S21, :S2)
+    @test Hsm.ischildof(mysm, :S21, :S)
+    @test Hsm.ischildof(mysm, :S21, :Top)
+
+    @test Hsm.ischildof(mysm, :S211, :S21)
+    @test Hsm.ischildof(mysm, :S211, :S2)
+    @test Hsm.ischildof(mysm, :S211, :S)
+    @test Hsm.ischildof(mysm, :S211, :Top)
+
+
+    @test Hsm.find_lca(mysm, :S211, :S11) == :S
+
 end
-precompile(test, (typeof(mysm),))
-@time test(mysm)
+
+
+@testset "All 4 Level HSM transitions" begin
+    
+    Hsm.transition!(mysm, :Top)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :A)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :B)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :D)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :E)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :I)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :F)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :I)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :I)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :F)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :A)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :B)
+    @test mysm.foo == 0
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :D)
+    @test mysm.foo == 1
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :D)
+    @test mysm.foo == 0
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :E)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :G)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :H)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :H)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :C)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :G)
+    @test Hsm.current(mysm) == :S11
+
+    Hsm.dispatch!(mysm, :C)
+    @test Hsm.current(mysm) == :S211
+
+    Hsm.dispatch!(mysm, :C)
+    @test Hsm.current(mysm) == :S11
+
+    
+end
+
+
+
+@testset "Allocation Free" begin
+    
+    function test(mysm)
+        Hsm.transition!(mysm, :Top)
+        Hsm.dispatch!(mysm, :A)
+        Hsm.dispatch!(mysm, :B)
+        Hsm.dispatch!(mysm, :D)
+        Hsm.dispatch!(mysm, :E)
+        Hsm.dispatch!(mysm, :I)
+        Hsm.dispatch!(mysm, :F)
+        Hsm.dispatch!(mysm, :I)
+        Hsm.dispatch!(mysm, :I)
+        Hsm.dispatch!(mysm, :F)
+        Hsm.dispatch!(mysm, :A)
+        Hsm.dispatch!(mysm, :B)
+        Hsm.dispatch!(mysm, :D)
+        Hsm.dispatch!(mysm, :D)
+        Hsm.dispatch!(mysm, :E)
+        Hsm.dispatch!(mysm, :G)
+        Hsm.dispatch!(mysm, :H)
+        Hsm.dispatch!(mysm, :H)
+        Hsm.dispatch!(mysm, :C)
+        Hsm.dispatch!(mysm, :G)
+        Hsm.dispatch!(mysm, :C)
+        Hsm.dispatch!(mysm, :C)
+        return
+    end
+    precompile(test, (typeof(mysm),))
+    @test 0 == @allocated test(mysm)
+
+    
+end
+
