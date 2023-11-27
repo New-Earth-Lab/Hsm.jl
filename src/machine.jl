@@ -3,66 +3,126 @@
 abstract type AbstractStateMachine end
 
 const T_state = @NamedTuple{name::Symbol, ancestor::Symbol}
-const T_event = @NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}
-const T_exit = @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}
-const T_enter = @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}
-const T_initialize = @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}
+const T_event = @NamedTuple{
+    name::Symbol,
+    state::Symbol,
+    callback::FunctionWrappers.FunctionWrapper{EventHandled,Tuple{Vector{UInt8}}},
+}
+const T_exit =
+    @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing,Tuple{}}}
+const T_entry =
+    @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing,Tuple{}}}
+const T_initial =
+    @NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing,Tuple{}}}
 
 mutable struct StateMachineContext
     # These vectors are constant bindings but can be modified
     const states::Vector{@NamedTuple{name::Symbol, ancestor::Symbol}}
-    const event_callbacks::Vector{@NamedTuple{name::Symbol, state::Symbol, callback::FunctionWrappers.FunctionWrapper{Hsm.EventHandled, Tuple{Vector{UInt8}}}}}
-    const exit_callbacks::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    const enter_callbacks::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
-    const initialize_callbacks::Vector{@NamedTuple{state::Symbol, callback::FunctionWrappers.FunctionWrapper{Nothing, Tuple{}}}}
+    const event_callbacks::Vector{
+        @NamedTuple{
+            name::Symbol,
+            state::Symbol,
+            callback::FunctionWrappers.FunctionWrapper{EventHandled,Tuple{Vector{UInt8}}},
+        }
+    }
+    const exit_callbacks::Vector{
+        @NamedTuple{
+            state::Symbol,
+            callback::FunctionWrappers.FunctionWrapper{Nothing,Tuple{}},
+        }
+    }
+    const entry_callbacks::Vector{
+        @NamedTuple{
+            state::Symbol,
+            callback::FunctionWrappers.FunctionWrapper{Nothing,Tuple{}},
+        }
+    }
+    const initial_callbacks::Vector{
+        @NamedTuple{
+            state::Symbol,
+            callback::FunctionWrappers.FunctionWrapper{Nothing,Tuple{}},
+        }
+    }
     current::Symbol
     source::Symbol
     # history::Symbol
 end
+
+# TODO Use inner constructor?
 StateMachineContext() = StateMachineContext(
     T_state[],
     T_event[],
     T_exit[],
-    T_enter[],
-    T_initialize[],
+    T_entry[],
+    T_initial[],
     :Root,
     :Root,
 )
 
-current(sm::AbstractStateMachine) = sm.ctx.current
-current!(sm::AbstractStateMachine, state::Symbol) = sm.ctx.current = state
-source(sm::AbstractStateMachine) = sm.ctx.source
-source!(sm::AbstractStateMachine, state::Symbol) = sm.ctx.source = state
+current(sm::AbstractStateMachine) = sm.context.current
+current!(sm::AbstractStateMachine, state::Symbol) = sm.context.current = state
+source(sm::AbstractStateMachine) = sm.context.source
+source!(sm::AbstractStateMachine, state::Symbol) = sm.context.source = state
 
 const empty_payload = UInt8[]
-function dispatch!(sm::AbstractStateMachine, event, payload=empty_payload)
+function dispatch!(sm::AbstractStateMachine, event, payload = empty_payload)
     do_event!(sm, current(sm), event, payload)
 end
 
-function do_event!(sm::AbstractStateMachine, s::Union{Symbol, AbstractString}, event::Symbol, payload) # TODO: payload typed
-
-    # TODO: Darryl does this seem appropriate? We want a way 
-    # to be notified if the user dispatches an event that is not accounted for
-    # at all or handled all the way up the state machine.
-    if s == :Root
-        @warn "Event not handled by any states up to Root" event maxlog=1
+function do_event_r!(
+    sm::AbstractStateMachine,
+    source::Union{Symbol,AbstractString},
+    event::Symbol,
+    payload,
+) # TODO: payload typed
+    if source === :Root
+        @warn "Event not handled by any states up to Root" event maxlog = 1
         return
     end
 
-    source!(sm, s)
+    source!(sm, source)
 
     # Find the main source state by calling on_event! until the event is handled
     # on_event!
     handled = NotHandled
-    for event_prime in sm.ctx.event_callbacks
-        if event_prime.name == event && event_prime.state == s
-            handled = event_prime.callback(payload)
+    for cb in sm.context.event_callbacks
+        if cb.name === event && cb.state === source
+            handled = cb.callback(payload)
             break
         end
     end
 
     if handled != Handled
-        do_event!(sm, ancestor(sm, s), event, payload)
+        do_event_r!(sm, ancestor(sm, source), event, payload)
     end
     return
+end
+
+function do_event!(
+    sm::AbstractStateMachine,
+    source::Union{Symbol,AbstractString},
+    event::Symbol,
+    payload,
+) # TODO: payload typed
+    while source !== :Root
+        source!(sm, source)
+
+        handled = NotHandled
+        for cb in sm.context.event_callbacks
+            if cb.name === event && cb.state === source
+                handled = cb.callback(payload)
+                break
+            end
+        end
+
+        if handled === Handled
+            return
+        end
+
+        source = ancestor(sm, source)
+    end
+    
+    @warn "Event not handled by any states up to Root" event maxlog = 1
+    return
+
 end

@@ -2,57 +2,55 @@ using Test
 using Hsm
 
 mutable struct MyStateMachine <: Hsm.AbstractStateMachine
-    ctx::Hsm.StateMachineContext
+    context::Hsm.StateMachineContext
     foo::Int
 end
-mysm = MyStateMachine(
-    Hsm.StateMachineContext(),
-    1
-)
+mysm = MyStateMachine(Hsm.StateMachineContext(), 1)
+
 Hsm.register_events!(mysm) do sm
+    Hsm.add_state!(sm, name = :Top, ancestor = :Root)
+    Hsm.add_state!(sm, name = :S, ancestor = :Top)
+    Hsm.add_state!(sm, name = :S1, ancestor = :S)
+    Hsm.add_state!(sm, name = :S11, ancestor = :S1)
+    Hsm.add_state!(sm, name = :S2, ancestor = :S)
+    Hsm.add_state!(sm, name = :S21, ancestor = :S2)
+    Hsm.add_state!(sm, name = :S211, ancestor = :S21)
 
-    Hsm.add_state!(sm, name = :Top, ancestor=:Root)
-    Hsm.add_state!(sm, name = :S, ancestor=:Top)
-    Hsm.add_state!(sm, name = :S1, ancestor=:S)
-    Hsm.add_state!(sm, name = :S11, ancestor=:S1)
-    Hsm.add_state!(sm, name = :S2, ancestor=:S)
-    Hsm.add_state!(sm, name = :S21, ancestor=:S2)
-    Hsm.add_state!(sm, name = :S211, ancestor=:S21)
-
-
-    Hsm.on_initialize!(sm, :Top) do 
-        Hsm.transition!(sm, :S2) do 
+    Hsm.on_initial!(sm, :Top) do
+        Hsm.transition!(sm, :S2) do
             sm.foo = 0
         end
     end
 
     ## S
-
-    Hsm.on_initialize!(sm, :S) do 
-        Hsm.transition!(sm, :S11) do 
+    Hsm.on_initial!(sm, :S) do
+        Hsm.transition!(sm, :S11) do
         end
     end
+
     Hsm.on_event!(sm, :S, :E) do payload
-        Hsm.transition!(sm, :S11) do 
+        Hsm.transition!(sm, :S11) do
         end
         return Hsm.Handled
     end
+
     Hsm.on_event!(sm, :S, :I) do payload
         if sm.foo == 1
             sm.foo = 0
             return Hsm.Handled
         end
-        return Hsm.NotHandled 
+        return Hsm.NotHandled
     end
 
     ## S1
-    Hsm.on_initialize!(sm, :S1) do 
+    Hsm.on_initial!(sm, :S1) do
         Hsm.transition!(sm, :S11) do
         end
         return Hsm.Handled
     end
+
     Hsm.on_event!(sm, :S1, :A) do payload
-        Hsm.transition!(sm, :S1) do 
+        Hsm.transition!(sm, :S1) do
         end
         return Hsm.Handled
     end
@@ -79,7 +77,7 @@ Hsm.register_events!(mysm) do sm
         return Hsm.NotHandled
     end
 
-    Hsm.on_event!(sm, :S1, :F) do payload 
+    Hsm.on_event!(sm, :S1, :F) do payload
         Hsm.transition!(sm, :S211) do
         end
     end
@@ -88,11 +86,10 @@ Hsm.register_events!(mysm) do sm
         return Hsm.Handled
     end
 
-
     ## S11
     Hsm.on_event!(sm, :S11, :D) do payload
         if sm.foo == 1
-            Hsm.transition!(sm, :S1) do 
+            Hsm.transition!(sm, :S1) do
                 sm.foo = 0
             end
             return Hsm.Handled
@@ -100,35 +97,32 @@ Hsm.register_events!(mysm) do sm
         return Hsm.NotHandled
     end
 
-    Hsm.on_event!(sm, :S11, :G) do  payload
+    Hsm.on_event!(sm, :S11, :G) do payload
         Hsm.transition!(sm, :S211) do
         end
         return Hsm.Handled
     end
-    
-    Hsm.on_event!(sm, :S11, :H) do  payload
-        Hsm.transition!(sm, :S) do 
+
+    Hsm.on_event!(sm, :S11, :H) do payload
+        Hsm.transition!(sm, :S) do
         end
         return Hsm.Handled
     end
-    
-
-
 
     ## S2
-    Hsm.on_initialize!(sm, :S2) do 
+    Hsm.on_initial!(sm, :S2) do
         Hsm.transition!(sm, :S211) do
         end
     end
 
     Hsm.on_event!(sm, :S2, :C) do payload
-        Hsm.transition!(sm, :S1) do 
+        Hsm.transition!(sm, :S1) do
         end
         return Hsm.Handled
     end
 
     Hsm.on_event!(sm, :S2, :F) do payload
-        Hsm.transition!(sm, :S11) do 
+        Hsm.transition!(sm, :S11) do
         end
         return Hsm.Handled
     end
@@ -141,50 +135,49 @@ Hsm.register_events!(mysm) do sm
         return Hsm.NotHandled
     end
 
-
     ## S21
-
-    Hsm.on_initialize!(sm, :S21) do 
+    Hsm.on_initial!(sm, :S21) do
         Hsm.transition!(sm, :S211) do
             # The previous S21 also transitions to S211? Is that right?
         end
     end
+
     Hsm.on_event!(sm, :S21, :A) do payload
-        Hsm.transition!(sm, :S21) do 
+        Hsm.transition!(sm, :S21) do
         end
         return Hsm.Handled
     end
+
     Hsm.on_event!(sm, :S21, :B) do payload
-        Hsm.transition!(sm, :S211) do 
+        Hsm.transition!(sm, :S211) do
         end
         return Hsm.Handled
     end
+
     Hsm.on_event!(sm, :S21, :G) do payload
-        Hsm.transition!(sm, :S11) do 
+        Hsm.transition!(sm, :S11) do
         end
         return Hsm.Handled
     end
 
     ## S211
-    Hsm.on_initialize!(sm, :S21) do
+    Hsm.on_initial!(sm, :S211) do
     end
+
     Hsm.on_event!(sm, :S211, :D) do payload
-        Hsm.transition!(sm, :S21) do 
+        Hsm.transition!(sm, :S21) do
         end
         return Hsm.Handled
     end
+
     Hsm.on_event!(sm, :S211, :H) do payload
-        Hsm.transition!(sm, :S) do 
+        Hsm.transition!(sm, :S) do
         end
         return Hsm.Handled
     end
-    
 end;
 
-
-
 @testset "Basics" begin
-
     @test Hsm.ancestor(mysm, :Top) == :Root
     @test Hsm.ancestor(mysm, :S) == :Top
     @test Hsm.ancestor(mysm, :S1) == :S
@@ -193,9 +186,8 @@ end;
     @test Hsm.ancestor(mysm, :S21) == :S2
     @test Hsm.ancestor(mysm, :S211) == :S21
 
-
     @test Hsm.ischildof(mysm, :S, :Top)
-    
+
     @test Hsm.ischildof(mysm, :S1, :S)
     @test Hsm.ischildof(mysm, :S1, :Top)
 
@@ -215,14 +207,10 @@ end;
     @test Hsm.ischildof(mysm, :S211, :S)
     @test Hsm.ischildof(mysm, :S211, :Top)
 
-
     @test Hsm.find_lca(mysm, :S211, :S11) == :S
-
 end
 
-
 @testset "All 4 Level HSM transitions" begin
-    
     Hsm.transition!(mysm, :Top)
     @test Hsm.current(mysm) == :S211
 
@@ -291,14 +279,9 @@ end
 
     Hsm.dispatch!(mysm, :C)
     @test Hsm.current(mysm) == :S11
-
-    
 end
 
-
-
 @testset "Allocation Free" begin
-    
     function test(mysm)
         Hsm.transition!(mysm, :Top)
         Hsm.dispatch!(mysm, :A)
@@ -326,7 +309,4 @@ end
     end
     precompile(test, (typeof(mysm),))
     @test 0 == @allocated test(mysm)
-
-    
 end
-
