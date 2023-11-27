@@ -252,15 +252,3 @@ function test(hsm)
 end
 precompile(test, (typeof(mysm),))
 @time test(mysm)
-
-function profile_test(sm, n)
-    for _ = 1:n
-        test(sm)
-    end
-end
-
-function profile_test2(sm, e, b, n)
-    for _ = 1:n
-        Hsm.dispatch!(sm, e, b)
-    end
-end
