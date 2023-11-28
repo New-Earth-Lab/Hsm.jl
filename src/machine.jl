@@ -69,35 +69,6 @@ function dispatch!(sm::AbstractStateMachine, event, payload = empty_payload)
     do_event!(sm, current(sm), event, payload)
 end
 
-function do_event_r!(
-    sm::AbstractStateMachine,
-    source::Union{Symbol,AbstractString},
-    event::Symbol,
-    payload,
-) # TODO: payload typed
-    if source === :Root
-        @warn "Event not handled by any states up to Root" event maxlog = 1
-        return
-    end
-
-    source!(sm, source)
-
-    # Find the main source state by calling on_event! until the event is handled
-    # on_event!
-    handled = NotHandled
-    for cb in sm.context.event_callbacks
-        if cb.name === event && cb.state === source
-            handled = cb.callback(payload)
-            break
-        end
-    end
-
-    if handled != Handled
-        do_event_r!(sm, ancestor(sm, source), event, payload)
-    end
-    return
-end
-
 function do_event!(
     sm::AbstractStateMachine,
     source::Union{Symbol,AbstractString},
