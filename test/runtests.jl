@@ -8,7 +8,6 @@ end
 mysm = MyStateMachine(Hsm.StateMachineContext(), 1)
 
 Hsm.register_events!(mysm) do sm
-    Hsm.add_state!(sm, name = :Top, ancestor = :Root)
     Hsm.add_state!(sm, name = :S, ancestor = :Top)
     Hsm.add_state!(sm, name = :S1, ancestor = :S)
     Hsm.add_state!(sm, name = :S11, ancestor = :S1)
@@ -178,7 +177,6 @@ Hsm.register_events!(mysm) do sm
 end;
 
 @testset "Basics" begin
-    @test Hsm.ancestor(mysm, :Top) == :Root
     @test Hsm.ancestor(mysm, :S) == :Top
     @test Hsm.ancestor(mysm, :S1) == :S
     @test Hsm.ancestor(mysm, :S11) == :S1

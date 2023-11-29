@@ -55,8 +55,8 @@ StateMachineContext() = StateMachineContext(
     T_exit[],
     T_entry[],
     T_initial[],
-    :Root,
-    :Root,
+    :Top,
+    :Top,
 )
 
 current(sm::AbstractStateMachine) = sm.context.current
@@ -75,7 +75,7 @@ function do_event!(
     event::Symbol,
     payload,
 ) # TODO: payload typed
-    while source !== :Root
+    while source !== :Top
         source!(sm, source)
 
         handled = NotHandled

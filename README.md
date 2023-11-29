@@ -27,13 +27,12 @@ mysm = MyStateMachine(
 
 Next, describe the possible states and their nesting:
 ```julia
-Hsm.add_state!(mysm, name = :Top, ancestor=:Root)
 Hsm.add_state!(mysm, name = :State1, ancestor=:Top)
 Hsm.add_state!(mysm, name = :State1_substate1, ancestor=:State1)
 Hsm.add_state!(mysm, name = :State1_substate2, ancestor=:State1)
 ```
 
-An ancestor of `:Root` should be included for your outermost state.
+An ancestor of `:Top` should be included for your outermost state.
 
 Now, define the ways in which your state machine enters and exits those
 (potentially nested) states.

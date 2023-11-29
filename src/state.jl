@@ -72,7 +72,7 @@ function ancestor(sm::AbstractStateMachine, state::Symbol)
             return s.ancestor
         end
     end
-    return :Root
+    return ::Top
 end
 
 function find_lca(sm::AbstractStateMachine, source::Symbol, target::Symbol)
@@ -89,9 +89,9 @@ end
 
 # Could put Base.@assume_effects :terminates_locally
 function find_lca_loop(sm::AbstractStateMachine, source::Symbol, target::Symbol)
-    while source !== :Root
+    while source !== ::Top
         t = target
-        while t !== :Root
+        while t !== ::Top
             if t === source
                 return t
             end
@@ -99,12 +99,12 @@ function find_lca_loop(sm::AbstractStateMachine, source::Symbol, target::Symbol)
         end
         source = ancestor(sm, source)
     end
-    return :Root
+    return ::Top
 end
 
 # Is 'a' a child of 'b'
 function ischildof(sm::AbstractStateMachine, a::Symbol, b::Symbol)
-    if a === :Root || b === :Root
+    if a === ::Top || b === ::Top
         return false
     elseif a === b
         return true
