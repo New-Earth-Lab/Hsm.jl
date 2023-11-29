@@ -1,32 +1,36 @@
-function do_entry!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
-    if s === t
+function do_entry!(sm::AbstractStateMachine, source::Symbol, target::Symbol)
+    if source === target
         return
     end
-    do_entry!(sm, s, ancestor(sm, t))
-    current!(sm, t)
+
+    do_entry!(sm, source, ancestor(sm, target))
+    current!(sm, target)
+
     # Call on_entry callback
-    for enter_callbacks in sm.ctx.enter_callbacks
-        if enter_callbacks.state == t
-            enter_callbacks.callback()
+    for cb in sm.context.entry_callbacks
+        if cb.state == target
+            cb.callback()
             break
         end
     end
     return
 end
 
-function do_exit!(sm::AbstractStateMachine, s::Symbol, t::Symbol)
-    if s === t
+function do_exit!(sm::AbstractStateMachine, source::Symbol, target::Symbol)
+    if source === target
         return
     end
+
     # Call on_exit callback
-    for exit_callbacks in sm.ctx.exit_callbacks
-        if exit_callbacks.state == s
-            exit_callbacks.callback()
+    for cb in sm.context.exit_callbacks
+        if cb.state === source
+            cb.callback()
             break
         end
     end
-    a = current!(sm, ancestor(sm,s))
-    do_exit!(sm, a, t)
+
+    a = current!(sm, ancestor(sm, source))
+    do_exit!(sm, a, target)
     return
 end
 
@@ -35,7 +39,7 @@ function transition!(sm::AbstractStateMachine, target::Symbol)
 end
 
 # TODO: work in progress
-function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
+function transition!(action, sm::AbstractStateMachine, target::Symbol)
     c = current(sm)
     s = source(sm)
     lca = find_lca(sm, s, target)
@@ -45,46 +49,46 @@ function transition!(action::Function, sm::AbstractStateMachine, target::Symbol)
 
     # Call action function
     action()
-    
+
     # Perform entry transitions to the target state
     do_entry!(sm, lca, target)
 
-    # Set the source to current for initialize transitions
+    # Set the source to current for initial transitions
     source!(sm, target)
 
-    # Call on_initialize callback
-    for initialize_callbacks in sm.ctx.initialize_callbacks
-        if initialize_callbacks.state == target
-            initialize_callbacks.callback()
+    # Call on_initial callback
+    for cb in sm.context.initial_callbacks
+        if cb.state === target
+            cb.callback()
             break
         end
     end
-
     return Handled
 end
 
-function ancestor(hsm1::AbstractStateMachine, state::Symbol)
-    for state_prime in hsm1.ctx.states
-        if state_prime.name == state
-            return state_prime.ancestor
+function ancestor(sm::AbstractStateMachine, state::Symbol)
+    for s in sm.context.states
+        if s.name === state
+            return s.ancestor
         end
     end
     return :Root
 end
 
-function find_lca(hsm1::AbstractStateMachine, source::Symbol, target::Symbol)
+function find_lca(sm::AbstractStateMachine, source::Symbol, target::Symbol)
     # Special case for transition to self
     if source === target
-        return ancestor(hsm1, source)
-    elseif source === ancestor(hsm1, target)
+        return ancestor(sm, source)
+    elseif source === ancestor(sm, target)
         return source
-    elseif ancestor(hsm1, source) === target
+    elseif ancestor(sm, source) === target
         return target
     end
-    find_lca_loop(hsm1, source, target)
+    return find_lca_loop(sm, source, target)
 end
+
 # Could put Base.@assume_effects :terminates_locally
-function find_lca_loop(sm::AbstractStateMachine, source, target)
+function find_lca_loop(sm::AbstractStateMachine, source::Symbol, target::Symbol)
     while source !== :Root
         t = target
         while t !== :Root
@@ -99,11 +103,11 @@ function find_lca_loop(sm::AbstractStateMachine, source, target)
 end
 
 # Is 'a' a child of 'b'
-function ischildof(hsm, a::Symbol, b::Symbol)
+function ischildof(sm::AbstractStateMachine, a::Symbol, b::Symbol)
     if a === :Root || b === :Root
         return false
     elseif a === b
         return true
     end
-    ischildof(hsm, ancestor(hsm, a), b)
+    return ischildof(sm, ancestor(sm, a), b)
 end

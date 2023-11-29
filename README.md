@@ -7,13 +7,13 @@ This library started as a fork of [HSM.jl](https://github.com/AndrewWasHere/HSM.
 ## Usage
 
 To use this package, define a state machine type. This can contain any state fields you might want to use in your application.
-It must inherit from `Hsm.AbstractStateMachine` and contain a field called `ctx` of type `Hsm.StateMachineContext`:
+It must inherit from `Hsm.AbstractStateMachine` and contain a field called `context` of type `Hsm.StateMachineContext`:
 
 ```julia
 using Hsm
 
 mutable struct MyStateMachine <: Hsm.AbstractStateMachine
-    ctx::Hsm.StateMachineContext
+    context::Hsm.StateMachineContext
     # Your state variables here
     foo::Int
 end
@@ -41,7 +41,7 @@ Now, define the ways in which your state machine enters and exits those
 
 Hsm.register_events!(mysm) do sm
 
-    Hsm.on_initialize!(sm, :State1) do
+    Hsm.on_initial!(sm, :State1) do
         # When initializing the outer State1, let's
         # immediately transition into this sub-state.
         Hsm.transition!(sm, :State1_substate1)

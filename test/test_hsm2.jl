@@ -199,8 +199,8 @@ using AllocCheck
 #     events::T
 #     exits::X
 #     enters::E
-#     initializes::I
-#     ctx::CTX
+#     initials::I
+#     context::CTX
 # end
 
 # # Defined by user #
@@ -229,7 +229,7 @@ using AllocCheck
 #     # fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8},typeof(typer)}}(our_callback)
 #     # fw = @cfunction($our_callback, Cvoid, (Vector{UInt8},))
 #     push!(sm.event_callbacks, (; name=event_name, state=state_name, callback=fw))
-#     return nothing
+#     return
 # end
 # function on_entry!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
 #     @info "Registering enter callback" state_name
@@ -239,8 +239,8 @@ using AllocCheck
 #     #     @warn "Provided on_entry! callback will allocate. This is bad for real-time performance!" allocations
 #     # end
 #     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-#     push!(sm.enter_callbacks, (; state=state_name, callback=fw))
-#     return nothing
+#     push!(sm.entry_callbacks, (; state=state_name, callback=fw))
+#     return
 # end
 # function on_exit!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
 #     @info "Registering exit callback" state_name
@@ -251,18 +251,18 @@ using AllocCheck
 #     # end
 #     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
 #     push!(sm.exit_callbacks, (; state=state_name, callback=fw))
-#     return nothing
+#     return
 # end
-# function on_initialize!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
-#     @info "Registering initialize callback" state_name
+# function on_initial!(callback::Base.Callable, sm::StateMachineContext, state_name::Symbol,)
+#     @info "Registering initial callback" state_name
 #     precompile(callback, ())
 #     # allocations = check_allocs(callback, ())
 #     # if !isempty(allocations)
-#     #     @warn "Provided on_initialize! callback will allocate. This is bad for real-time performance!" allocations
+#     #     @warn "Provided on_initial! callback will allocate. This is bad for real-time performance!" allocations
 #     # end
 #     fw = FunctionWrapper{Nothing,Tuple{}}(callback) 
-#     push!(sm.initialize_callbacks, (; state=state_name, callback=fw))
-#     return nothing
+#     push!(sm.initial_callbacks, (; state=state_name, callback=fw))
+#     return
 # end
 
 # Problem: we have a recursive relationship between the function wrapper type (since it receives
@@ -285,10 +285,10 @@ using AllocCheck
 
 ##
 
-# current(hsm1::StateMachineContext) = hsm1.ctx.current
-# current!(hsm1::StateMachineContext, state::Symbol) = hsm1.ctx.current = state
-# source(hsm1::StateMachineContext) = hsm1.ctx.source
-# source!(hsm1::StateMachineContext, state::Symbol) = hsm1.ctx.source = state
+# current(hsm1::StateMachineContext) = hsm1.context.current
+# current!(hsm1::StateMachineContext, state::Symbol) = hsm1.context.current = state
+# source(hsm1::StateMachineContext) = hsm1.context.source
+# source!(hsm1::StateMachineContext, state::Symbol) = hsm1.context.source = state
 
 # function ancestor(hsm1::StateMachineContext, state::Symbol)
 #     for state′ in hsm1.states
@@ -360,12 +360,12 @@ using AllocCheck
 #     # Perform entry transitions to the target state
 #     do_entry!(sm, lca, target)
 
-#     # Set the source to current for initialize transitions
+#     # Set the source to current for initial transitions
 #     source!(sm, target)
 
-#     for initialize′ in sm.initialize_callbacks
-#         if initialize′.state == target
-#             initialize′.callback()
+#     for initial′ in sm.initial_callbacks
+#         if initial′.state == target
+#             initial′.callback()
 #             break
 #         end
 #     end
@@ -379,7 +379,7 @@ using AllocCheck
 #     end
 #     do_entry!(sm, s, ancestor(sm, t))
 #     current!(sm, t)
-#     for enter′ in sm.enter_callbacks
+#     for enter′ in sm.entry_callbacks
 #         if enter′.state == t
 #             enter′.callback()
 #             break
@@ -461,8 +461,8 @@ function register_events!(callback, hsm1)
         tuple(hsm1.states...), 
         tuple(hsm1.event_callbacks...), 
         tuple(hsm1.exit_callbacks...), 
-        tuple(hsm1.enter_callbacks...), 
-        tuple(hsm1.initialize_callbacks...), 
+        tuple(hsm1.entry_callbacks...), 
+        tuple(hsm1.initial_callbacks...), 
         StateMachineContext1(:S, :S,0) 
     )
 end
@@ -500,13 +500,13 @@ payload = zeros(UInt8, 10)
 @time ancestor(hsm1, :S211)
 @time find_lca(hsm1, :S21, :S11)
 @time ischildof(hsm1, :S2, :S21)
-hsm1.ctx.current = :S2
+hsm1.context.current = :S2
 transition!(hsm1, :S211)
 transition!(hsm1, :S11)
 # @btime transition!(hsm1, :S1) # It's only allocating a return value on the REPL
 function testtransition(hsm1)
     @time transition!(hsm1, :S1)
-    return nothing
+    return
 end
 testtransition(hsm1)
 
@@ -551,7 +551,7 @@ hsm1 = register_events!(hsm1) do sm
     # on_exit!(()->print("S21-EXIT;"), sm, :S21)
     # on_exit!(()->print("S211-EXIT;"), sm, :S211)
 
-    on_initialize!(sm, :Top) do 
+    on_initial!(sm, :Top) do 
         transition!(sm, :S2) do 
             print("Top-INIT;")
             sm.foo = 0
@@ -560,7 +560,7 @@ hsm1 = register_events!(hsm1) do sm
 
     ## S
 
-    on_initialize!(sm, :S) do 
+    on_initial!(sm, :S) do 
         transition!(sm, :S11) do 
             print("S1-INIT")
         end
@@ -580,7 +580,7 @@ hsm1 = register_events!(hsm1) do sm
     end
 
     ## S1
-    on_initialize!(sm, :S1) do 
+    on_initial!(sm, :S1) do 
         transition!(sm, :S11) do
             print("S1-INIT;")
         end
@@ -660,7 +660,7 @@ hsm1 = register_events!(hsm1) do sm
 
 
     ## S2
-    on_initialize!(sm, :S2) do 
+    on_initial!(sm, :S2) do 
         transition!(sm, :S211) do
             print("S2-INIT;")
         end
@@ -691,7 +691,7 @@ hsm1 = register_events!(hsm1) do sm
 
     ## S21
 
-    on_initialize!(sm, :S21) do 
+    on_initial!(sm, :S21) do 
         transition!(sm, :S211) do sm
             # The previous S21 also transitions to S211? Is that right?
             print("S21-INIT;")
@@ -717,7 +717,7 @@ hsm1 = register_events!(hsm1) do sm
     end
 
     ## S211
-    on_initialize!(sm, :S21) do 
+    on_initial!(sm, :S21) do 
         # NOTE: I added this one not present in the original one
         print("S211-INIT;")
     end
@@ -740,7 +740,7 @@ end;
 # Start by transitioning to Top
 function test(hsm)
     # Yuck, initial initialization is painful
-    # for I in hsm1.initialize_callbacks
+    # for I in hsm1.initial_callbacks
     #     if I.state == :Top
     #         I.callback()
     #     end
@@ -775,6 +775,6 @@ function test(hsm)
 end
 test(hsm1)
 # TODO: need to copy over example
-# TODO: initial transition to Top is calling initialize but not leaving us in S1
+# TODO: initial transition to Top is calling initial but not leaving us in S1
 # Bit confused about Top vs Root
 # Game plan about the weird double init of the HSM: Don't pass in hsm just to push. Create two kinds of objects, one to hold everything, and a "real" one to put them when done.
