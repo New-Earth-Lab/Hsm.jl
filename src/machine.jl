@@ -87,13 +87,12 @@ function do_event!(
         end
 
         if handled === Handled
-            return
+            return true
         end
 
         source = ancestor(sm, source)
     end
     
-    @warn "Event not handled by any states up to Root" event maxlog = 1
-    return
+    return false
 
 end
