@@ -79,11 +79,17 @@ function do_event!(
         source!(sm, source)
 
         handled = NotHandled
+        callback = nothing
         for cb in sm.context.event_callbacks
             if cb.name === event && cb.state === source
-                handled = cb.callback(payload)
-                break
+                # Find the *last* registered event handler that matches.
+                # This facilitates interactive development where new event handlers are registered over
+                # old ones.
+                callback = cb.callback
             end
+        end
+        if !isnothing(callback)
+            handled = callback(payload)
         end
 
         if handled === Handled

@@ -7,11 +7,17 @@ function do_entry!(sm::AbstractStateMachine, source::Symbol, target::Symbol)
     current!(sm, target)
 
     # Call on_entry callback
+    callback = nothing
     for cb in sm.context.entry_callbacks
         if cb.state == target
-            cb.callback()
-            break
+            # Find the *last* registered event handler that matches.
+            # This facilitates interactive development where new event handlers are registered over
+            # old ones.
+            callback = cb.callback
         end
+    end
+    if !isnothing(callback)
+        callback()
     end
     return
 end
@@ -21,12 +27,18 @@ function do_exit!(sm::AbstractStateMachine, source::Symbol, target::Symbol)
         return
     end
 
-    # Call on_exit callback
+    # Call on_entry callback
+    callback = nothing
     for cb in sm.context.exit_callbacks
-        if cb.state === source
-            cb.callback()
-            break
+        if cb.state == source
+            # Find the *last* registered event handler that matches.
+            # This facilitates interactive development where new event handlers are registered over
+            # old ones.
+            callback = cb.callback
         end
+    end
+    if !isnothing(callback)
+        callback()
     end
 
     a = current!(sm, ancestor(sm, source))
@@ -57,12 +69,19 @@ function transition!(action, sm::AbstractStateMachine, target::Symbol)
     source!(sm, target)
 
     # Call on_initial callback
+    callback = nothing
     for cb in sm.context.initial_callbacks
-        if cb.state === target
-            cb.callback()
-            break
+        if cb.state == target
+            # Find the *last* registered event handler that matches.
+            # This facilitates interactive development where new event handlers are registered over
+            # old ones.
+            callback = cb.callback
         end
     end
+    if !isnothing(callback)
+        callback()
+    end
+
     return Handled
 end
 
