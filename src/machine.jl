@@ -75,7 +75,7 @@ function do_event!(
     event::Symbol,
     payload,
 ) # TODO: payload typed
-    while source !== :Top
+    while true
         source!(sm, source)
 
         handled = NotHandled
@@ -94,6 +94,10 @@ function do_event!(
 
         if handled === Handled
             return true
+        end
+
+        if source == :Top
+            break
         end
 
         source = ancestor(sm, source)
