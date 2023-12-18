@@ -4,7 +4,6 @@ function do_entry!(sm::AbstractStateMachine, source::Symbol, target::Symbol)
     end
 
     do_entry!(sm, source, ancestor(sm, target))
-    current!(sm, target)
 
     # Call on_entry callback
     callback = nothing
@@ -19,6 +18,10 @@ function do_entry!(sm::AbstractStateMachine, source::Symbol, target::Symbol)
     if !isnothing(callback)
         callback()
     end
+
+    current!(sm, target)
+
+
     return
 end
 
