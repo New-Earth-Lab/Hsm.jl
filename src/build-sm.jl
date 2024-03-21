@@ -11,6 +11,7 @@ function on_event!(
     state_name::Symbol,
     event_name::Symbol,
 )
+    precompile(callback, (Vector{UInt8},))
     # TODO: In reality, a SubArray{UInt8, 1, Vector{UInt8}, Tuple{UnitRange{Int64}}, true}
     fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8}}}(callback) # Works!
     # fw = FunctionWrapper{EventHandled,Tuple{Vector{UInt8},typeof(typer)}}(our_callback)
@@ -23,18 +24,21 @@ function on_event!(
 end
 
 function on_entry!(callback, sm::AbstractStateMachine, state_name::Symbol)
+    precompile(callback, tuple())
     fw = FunctionWrapper{Nothing,Tuple{}}(callback)
     push!(sm.context.entry_callbacks, (; state = state_name, callback = fw))
     return
 end
 
 function on_exit!(callback, sm::AbstractStateMachine, state_name::Symbol)
+    precompile(callback, tuple())
     fw = FunctionWrapper{Nothing,Tuple{}}(callback)
     push!(sm.context.exit_callbacks, (; state = state_name, callback = fw))
     return
 end
 
 function on_initial!(callback, sm::AbstractStateMachine, state_name::Symbol)
+    precompile(callback, tuple())
     fw = FunctionWrapper{Nothing,Tuple{}}(callback)
     push!(sm.context.initial_callbacks, (; state = state_name, callback = fw))
     return
